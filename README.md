@@ -21,6 +21,22 @@ Linux: Homebrew and distro Pythons are externally managed (PEP 668)
 and refuse bare pip installs. `pipx install .` works too if you prefer
 pipx-managed CLIs.
 
+## The front door
+
+```
+nandatown
+```
+
+Bare `nandatown` opens the interactive town: a full-screen terminal
+GUI with six tabs. Town (the journey and one-click proofs, including
+breaking the auth layer on purpose), Run (pick any scenario or
+profile, connect a harness per role, watch the stage table fill),
+Agents (test your own agent and read the N-of-M stages line),
+Protocols (import a PR from the upstream repo), Services (onboard an
+OpenAPI document), and Evidence (browse, report, verify, visualize
+every bundle). Everything the GUI does is also a plain command, so
+anything you click is scriptable.
+
 ## One command
 
 ```
@@ -150,6 +166,38 @@ survives; everything else must be recoverable through the protocol.
 The agents report their truncation count in their acknowledgement
 notes, so surviving the fault is an attributed assertion in the
 evidence.
+
+## Connect any harness
+
+Every Track role runs behind a harness connector, so any agent runtime
+plugs into a run:
+
+```
+nandatown run quote-clean --agent seller=cmd:"python my_agent.py"
+nandatown run quote-clean --agent seller=llm:qwen2.5 --agent buyer=scripted
+nandatown run quote-clean --agent buyer=external
+```
+
+`scripted` is the stock reference agent, `llm` and `llm:MODEL` the
+model tool loop, `cmd:COMMAND` your own process in any language, and
+`external` hands out join credentials so an agent anywhere can connect.
+
+## Test protocols from the upstream repo
+
+```
+nandatown import-pr 220
+nandatown protocols
+nandatown run marketplace --plugin protocols/<dir>/plugin.py --layer trust=their.v2
+```
+
+`import-pr` pulls a contribution from projnanda/nandatown (or any
+`--repo`): the changed files at the exact head commit, fingerprinted,
+classified (plugin with its detected layer, scenario, skill, test),
+checked (including the secret scan), and cataloged as
+imported-untrusted. Importing never runs the code. When you choose to,
+`--plugin` loads the contributed module and `--layer` swaps it into a
+scenario, so the contribution runs against the town's reference agents
+and comes back with a stage report.
 
 ## Test your own agent
 

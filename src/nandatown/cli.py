@@ -419,7 +419,21 @@ def cmd_coordinator(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ui(args: argparse.Namespace) -> int:
+    from .tui import launch
+
+    launch(out_dir=args.out)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+    if not argv:
+        from .tui import launch
+
+        launch()
+        return 0
     parser = argparse.ArgumentParser(
         prog="nandatown",
         description="The open proving ground for the Internet of AI"
@@ -429,6 +443,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--version", action="version",
                         version=f"nandatown {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    p_ui = sub.add_parser("ui", help="the interactive town (also just:"
+                                     " nandatown with no arguments)")
+    p_ui.add_argument("--out", default="runs")
+    p_ui.set_defaults(func=cmd_ui)
 
     p_run = sub.add_parser("run", help="run a Lab scenario or Track"
                                        " profile and print the report")
