@@ -210,6 +210,37 @@ def cmd_campaign(args: argparse.Namespace) -> int:
     return 0 if failed == 0 else 1
 
 
+def cmd_pulse(args: argparse.Namespace) -> int:
+    from .pulse import export_records, render_pulse_report, run_pulse
+
+    if args.report:
+        print(render_pulse_report(args.db), end="")
+        return 0
+    if args.records:
+        for record in export_records(args.db):
+            print(record.model_dump_json())
+        return 0
+    targets = {}
+    for target in args.target:
+        name, _, url = target.partition("=")
+        if not url:
+            print(f"target {target!r} must look like name=url")
+            return 2
+        targets[name] = url
+    if not targets:
+        print("give at least one --target name=url, or --report /"
+              " --records over an existing --db")
+        return 2
+    run_pulse(targets, count=args.count, interval=args.interval,
+              db_path=args.db,
+              on_probe=lambda name, r: print(
+                  f"{name}: {'up' if r['ok'] else 'DOWN'}"
+                  f" ({r['latency_ms']:.0f} ms)"))
+    print()
+    print(render_pulse_report(args.db), end="")
+    return 0
+
+
 def cmd_report(args: argparse.Namespace) -> int:
     from .bundle import load_bundle
     from .report import render_report
@@ -364,6 +395,21 @@ def main(argv: list[str] | None = None) -> int:
     p_campaign.add_argument("--seed-base", type=int, default=1000)
     p_campaign.add_argument("--out", default="runs")
     p_campaign.set_defaults(func=cmd_campaign)
+
+    p_pulse = sub.add_parser(
+        "pulse", help="probe registered services on a schedule and keep"
+                      " the operational history")
+    p_pulse.add_argument("--target", action="append", default=[],
+                         metavar="NAME=URL")
+    p_pulse.add_argument("--count", type=int, default=5)
+    p_pulse.add_argument("--interval", type=float, default=2.0)
+    p_pulse.add_argument("--db", default="pulse.db")
+    p_pulse.add_argument("--report", action="store_true",
+                         help="render the availability history")
+    p_pulse.add_argument("--records", action="store_true",
+                         help="export operational-history evidence"
+                              " records as JSONL")
+    p_pulse.set_defaults(func=cmd_pulse)
 
     p_report = sub.add_parser("report", help="render a bundle's report")
     p_report.add_argument("bundle_dir")

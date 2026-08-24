@@ -1,0 +1,122 @@
+"""Town Pulse: operational history after publication.
+
+A sandbox test at onboarding is one moment and cannot show next week.
+Pulse checks each registered service on a schedule and keeps the full
+history, so availability is a measured record, not a memory. Every
+probe becomes one operational-history evidence record: one observer,
+one subject, one time.
+"""
+
+from __future__ import annotations
+
+import sqlite3
+import time
+from typing import Any
+
+import httpx
+
+from .records import EvidenceRecord
+
+OBSERVER = "town-pulse.v1"
+
+
+def probe(url: str, timeout: float = 3.0) -> dict[str, Any]:
+    started = time.time()
+    try:
+        response = httpx.get(url, timeout=timeout)
+        return {"ok": response.status_code < 500,
+                "status": response.status_code,
+                "latency_ms": round((time.time() - started) * 1000, 1)}
+    except httpx.HTTPError as exc:
+        return {"ok": False, "status": 0,
+                "latency_ms": round((time.time() - started) * 1000, 1),
+                "error": type(exc).__name__}
+
+
+def _conn(db_path: str) -> sqlite3.Connection:
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS probes ("
+        " name TEXT NOT NULL, url TEXT NOT NULL, at REAL NOT NULL,"
+        " ok INTEGER NOT NULL, status INTEGER NOT NULL,"
+        " latency_ms REAL NOT NULL)")
+    return conn
+
+
+def run_pulse(targets: dict[str, str], count: int, interval: float,
+              db_path: str, on_probe=None) -> None:
+    with _conn(db_path) as conn:
+        for i in range(count):
+            for name, url in targets.items():
+                result = probe(url)
+                conn.execute(
+                    "INSERT INTO probes (name, url, at, ok, status,"
+                    " latency_ms) VALUES (?,?,?,?,?,?)",
+                    (name, url, time.time(), int(result["ok"]),
+                     result["status"], result["latency_ms"]))
+                conn.commit()
+                if on_probe:
+                    on_probe(name, result)
+            if i < count - 1:
+                time.sleep(interval)
+
+
+def availability(db_path: str) -> dict[str, dict[str, Any]]:
+    with _conn(db_path) as conn:
+        rows = conn.execute(
+            "SELECT name, url, at, ok, latency_ms FROM probes"
+            " ORDER BY at").fetchall()
+    out: dict[str, dict[str, Any]] = {}
+    for name, url, at, ok, latency in rows:
+        entry = out.setdefault(name, {"url": url, "checks": 0, "up": 0,
+                                      "first_at": at, "last_at": at,
+                                      "last_ok": bool(ok),
+                                      "latencies": []})
+        entry["checks"] += 1
+        entry["up"] += ok
+        entry["last_at"] = at
+        entry["last_ok"] = bool(ok)
+        if ok:
+            entry["latencies"].append(latency)
+    for entry in out.values():
+        entry["availability"] = round(100.0 * entry["up"]
+                                      / entry["checks"], 1)
+        lat = entry.pop("latencies")
+        entry["median_latency_ms"] = (sorted(lat)[len(lat) // 2]
+                                      if lat else None)
+    return out
+
+
+def export_records(db_path: str) -> list[EvidenceRecord]:
+    with _conn(db_path) as conn:
+        rows = conn.execute(
+            "SELECT rowid, name, url, at, ok, status FROM probes"
+            " ORDER BY at").fetchall()
+    return [
+        EvidenceRecord(
+            record_id=f"pulse-{rowid}", observer=OBSERVER, subject=name,
+            capability="liveness", test="http-probe",
+            result="passed" if ok else "failed", at=at,
+            evidence=[f"{url} responded {status}" if ok
+                      else f"{url} unreachable or {status}"])
+        for rowid, name, url, at, ok, status in rows
+    ]
+
+
+def render_pulse_report(db_path: str) -> str:
+    stats = availability(db_path)
+    if not stats:
+        return "no pulse history yet\n"
+    lines = ["Town Pulse operational history", "=" * 40]
+    width = max(len(n) for n in stats)
+    for name, s in sorted(stats.items()):
+        state = "up" if s["last_ok"] else "DOWN"
+        latency = (f", median {s['median_latency_ms']:.0f} ms"
+                   if s["median_latency_ms"] is not None else "")
+        lines.append(
+            f"{name.ljust(width)}  {s['availability']:5.1f}% of"
+            f" {s['checks']} checks, now {state}{latency}")
+    lines.append("")
+    lines.append("A one-time test at publish time would show none of"
+                 " this. History is the evidence.")
+    return "\n".join(lines) + "\n"
