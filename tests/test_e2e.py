@@ -1,0 +1,24 @@
+"""End-to-end: real subprocesses, real HTTP, real faults."""
+
+from nandatown.bundle import verify_bundle
+from nandatown.runner import run_town
+
+
+def stage(result, name):
+    return next(s for s in result.stages if s.name == name)
+
+
+def test_clean_run_end_to_end(tmp_path):
+    bundle_dir, result = run_town("quote-clean", str(tmp_path))
+    assert result.verdict == "passed", [
+        (s.name, s.status, s.note) for s in result.stages]
+    assert verify_bundle(bundle_dir) == []
+
+
+def test_crash_restart_run_end_to_end(tmp_path):
+    bundle_dir, result = run_town("quote-crash-restart", str(tmp_path))
+    detail = [(s.name, s.status, s.note) for s in result.stages]
+    assert stage(result, "recovered_after_restart").status == "passed", detail
+    assert stage(result, "stale_fence_rejected").status == "passed", detail
+    assert result.verdict == "passed", detail
+    assert verify_bundle(bundle_dir) == []

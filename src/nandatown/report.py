@@ -30,7 +30,7 @@ STAGE_MEANING = {
                             " handled",
     "wakeup_loss_tolerated": "a lost wake-up hint did not lose inbox work",
     "ack_retry_survived": "a lost acknowledgement was retried and recorded",
-    "portable_identity": "portable identity is a later experiment",
+    "portable_identity": "not exercised in this run",
 }
 
 SCOPE_SENTENCE = ("This result applies only to the named agents, releases,"
