@@ -131,7 +131,7 @@ class MockBrain:
         last_claim = None
         after: list = []
         for name, args, result in history:
-            if name == "claim_work" and "no work" not in result:
+            if name == "claim_work" and result.startswith("{"):
                 last_claim, after = json.loads(result), []
             elif last_claim is not None:
                 after.append((name, result))
@@ -165,7 +165,7 @@ class MockBrain:
 
     def _buyer(self, history, task, idle):
         for name, args, result in reversed(history):
-            if name == "claim_work" and "no work" not in result:
+            if name == "claim_work" and result.startswith("{"):
                 claim = json.loads(result)
                 if claim.get("kind") != "quote_response":
                     return self._call("ack_work",
