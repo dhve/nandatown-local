@@ -481,3 +481,23 @@ class TownApp(App):
 
 def launch(out_dir: str = "runs") -> None:
     TownApp(out_dir=out_dir).run()
+
+
+def build_web_server(out_dir: str = "runs", host: str = "127.0.0.1",
+                     port: int = 8901):
+    """The same GUI served over HTTP: no terminal required."""
+    import sys
+
+    from textual_serve.server import Server
+
+    command = (f'"{sys.executable}" -m nandatown.cli ui'
+               f' --out "{os.path.abspath(out_dir)}"')
+    return Server(command, host=host, port=port,
+                  title="NANDA Town")
+
+
+def launch_web(out_dir: str = "runs", host: str = "127.0.0.1",
+               port: int = 8901) -> None:
+    server = build_web_server(out_dir, host, port)
+    print(f"NANDA Town GUI on http://{host}:{port}")
+    server.serve()

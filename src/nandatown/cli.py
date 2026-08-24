@@ -420,6 +420,11 @@ def cmd_coordinator(args: argparse.Namespace) -> int:
 
 
 def cmd_ui(args: argparse.Namespace) -> int:
+    if args.web:
+        from .tui import launch_web
+
+        launch_web(out_dir=args.out, host=args.host, port=args.port)
+        return 0
     from .tui import launch
 
     launch(out_dir=args.out)
@@ -447,6 +452,11 @@ def main(argv: list[str] | None = None) -> int:
     p_ui = sub.add_parser("ui", help="the interactive town (also just:"
                                      " nandatown with no arguments)")
     p_ui.add_argument("--out", default="runs")
+    p_ui.add_argument("--web", action="store_true",
+                      help="serve the GUI in a browser instead of this"
+                           " terminal")
+    p_ui.add_argument("--host", default="127.0.0.1")
+    p_ui.add_argument("--port", type=int, default=8901)
     p_ui.set_defaults(func=cmd_ui)
 
     p_run = sub.add_parser("run", help="run a Lab scenario or Track"

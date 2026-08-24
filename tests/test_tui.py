@@ -42,6 +42,15 @@ def test_lab_run_from_the_run_tab(tmp_path):
     run_async(go())
 
 
+def test_web_server_builds_with_ui_command(tmp_path):
+    from nandatown.tui import build_web_server
+
+    server = build_web_server(out_dir=str(tmp_path), port=8931)
+    assert "nandatown.cli ui" in server.command
+    assert str(tmp_path) in server.command
+    assert server.port == 8931
+
+
 def test_evidence_verify_from_the_evidence_tab(tmp_path):
     from nandatown.sim.runner import run_lab
 
