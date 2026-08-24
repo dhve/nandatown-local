@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+ "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.nandatown.coordinator</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/nandatown</string>
+        <string>coordinator</string>
+        <string>--host</string>
+        <string>127.0.0.1</string>
+        <string>--port</string>
+        <string>8477</string>
+        <string>--db</string>
+        <string>/usr/local/var/nandatown/town.db</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>TOWN_ADMIN_TOKEN</key>
+        <string>set-a-real-token-here</string>
+    </dict>
+    <key>KeepAlive</key>
+    <true/>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>

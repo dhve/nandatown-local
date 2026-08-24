@@ -143,9 +143,11 @@ def cmd_profiles(_args: argparse.Namespace) -> int:
 def cmd_layers(_args: argparse.Namespace) -> int:
     from .layers import DEFAULT_PLUGINS, plugins
 
+    display = {"auth": "auth (authorization)",
+               "data_facts": "data_facts (data facts)"}
     print("The twelve protocol layers and their registered plugins:")
     for layer, entries in plugins().items():
-        print(f"  {layer}")
+        print(f"  {display.get(layer, layer)}")
         for entry in entries:
             default = (" (default)"
                        if entry["plugin_id"] == DEFAULT_PLUGINS[layer]

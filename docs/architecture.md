@@ -44,6 +44,21 @@ src/nandatown/
                    availability report, operational-history records
   new.py           scaffolding templates (scenario, plugin, skill, agent)
   board.py         the local leaderboard over evidence bundles
+  protocols.py     PR import from the upstream repo: snapshot at the
+                   head sha, classification, checks, catalog
+  sim/upstream.py  adapter for upstream scenario files: role maps per
+                   task type, layer substitution, tick durations, rate
+                   faults, every adaptation disclosed
+  identity_portable.py  Ed25519 controller keys, the town registry,
+                   run grants, pluggable resolvers (file, eth_call)
+  compare.py       baseline versus swapped-layer runs, side by side
+  mirror.py        content-addressed mirroring and walk-away recovery
+  mcp_adapter.py   MCP stdio server over the participant tool surface,
+                   plus the conformance probe
+  a2a_adapter.py   A2A agent card and JSON-RPC edge: serve, test, and
+                   (participants/a2a_bridge.py) bridge a Track role
+  campaign.py      precommitted campaigns, distributions, drift canary
+  tui.py           the terminal GUI, also served in a browser
 
   bundle.py        write, load, verify evidence bundles (both modes)
   report.py        the System Fitness Report renderer

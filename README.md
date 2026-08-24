@@ -1,10 +1,14 @@
 # nandatown
 
-The open proving ground for the Internet of AI agents, running on your laptop.
+A test track for the Internet of AI agents, running on your laptop.
 
 Bring an agent. Give it a task. Break something on purpose. Leave with evidence of what actually happened. Agent, task, failure, evidence.
 
-This is a local-first developer sandbox and test harness for NANDA protocols, services, and agent-to-agent workflows. It gives you two ways to test, twelve replaceable protocol layers, six ready scenarios, five fault profiles, campaigns for statistical evidence, portable evidence bundles anyone can verify, a step-by-step replay, and an HTML visualizer. No model, no wallet, no gas, no network beyond localhost. A full run takes seconds and costs nothing.
+Most AI evaluation asks how capable one model is on one task. The harder question is what happens when populations of agents must discover one another, establish trust, exchange value, negotiate, and coordinate under imperfect conditions. That question is what this town measures. Every report answers it stage by stage: did agents discover the right collaborators, did the marketplace reach a valid outcome, did every vote get counted, did the trust mechanism withstand manipulation, and did the network keep functioning when conditions changed.
+
+This is a testing tool first and a simulator second: a local-first sandbox and test harness for NANDA protocols, services, and agent-to-agent workflows. Two ways to test, twelve replaceable protocol layers, deterministic replayable traces, an LLM-powered mode for emergent behavior, protocol comparison, campaigns for statistical evidence, portable identity, signed attestations, and evidence bundles anyone can verify. A full run takes seconds and costs nothing.
+
+The framing comes from Ramesh Raskar's NandaTown introduction and the paper "Towards Sandboxes for the Internet of Agents" (papers.ssrn.com/sol3/papers.cfm?abstract_id=5801322): agent evaluation must move from isolated task competence to system fitness. This build makes that loop executable end to end: define a population, select a scenario, swap a protocol component, inject a failure, run, inspect every interaction, and compare the outcome against properties that should remain true.
 
 ## Install
 
@@ -65,11 +69,11 @@ Everything in the town runs on twelve replaceable protocol layers. Each has a wo
 
 | Layer | Default | What it does |
 |---|---|---|
-| transport | memory.v1 | delivers envelopes, injects drop, duplicate, and delay faults |
+| transport | memory.v1 | delivers envelopes, injects drop, duplicate, delay, and rate faults |
 | communication | envelope.v1 | message envelopes, conversation ids, correlation |
-| identity | keys.v1 | per-agent keys and agent cards |
+| identity | keys.v1 | per-agent keys and AgentFacts-style cards |
 | registry | index.v1 | the town's internal index: publish cards, look up capabilities |
-| auth | hmac.v1 | signs and verifies messages and cards; forged senders fail |
+| auth (authorization) | hmac.v1 | signs and verifies messages and cards; forged senders fail |
 | trust | reputation.v1 | receipt-driven reputation with a public formula |
 | payments | ledger.v1 | balances, transfers, escrow; money is conserved |
 | coordination | contractnet.v1 | announce, bid, award, with late bids rejected |
@@ -82,7 +86,17 @@ Everything in the town runs on twelve replaceable protocol layers. Each has a wo
 nandatown layers
 ```
 
-Register your own plugin with `@register("payments", "yourledger.v1")` and name it in a scenario under `layers:`.
+Register your own plugin with `@register("payments", "yourledger.v1")` and name it in a scenario under `layers:`, swap one in for a single run with `--layer`, or put two rule sets head to head:
+
+```
+nandatown compare capability_spoofing --swap auth=plain.v1
+```
+
+Same agents, same scenario, same seed; only the rules differ. The comparison report shows the stage verdicts side by side and names exactly what the swap changed, each column backed by its own verifiable bundle. A researcher tests a new reputation algorithm without rebuilding the marketplace; a standards group compares competing protocols through repeatable experiments.
+
+## Upstream scenarios run here
+
+Scenario files from the projnanda/nandatown repository (agent populations declared as roles with counts, tick durations, rate-based failures) are detected and adapted automatically: roles map onto the reference agents per task type, upstream layer plugins substitute to local defaults, and every substitution is disclosed in the report as an adaptation. `nandatown import-pr N` then `nandatown run <imported scenario>` just works, judged by the generic adapted validator: population active, discovery worked, messages flowed, the task completed, money conserved.
 
 ## Lab scenarios
 
@@ -120,6 +134,7 @@ nandatown profiles
 | quote-lost-ack | the first acknowledgement is lost | the retry is safe, nothing applies twice |
 | quote-llm | nothing (tier two baseline) | model-driven participants complete the task through the tool loop |
 | quote-llm-truncation | the agents' context is truncated mid-run | the protocol carries the recovery: rediscover, resend the same identity, reclaim |
+| quote-llm-tool-error | a tool result is lost mid-call | the agent notices the error, retries the tool, and the claimed work survives its lease |
 
 Delivery semantics, in one paragraph: the coordinator's database is the source of operational truth. Accepted work and the intent to notify are recorded in one transaction. Delivery is at least once, under leases with fencing tokens; an expired fence can never acknowledge. Duplicate delivery is possible by design, and each participant keeps a durable journal so effects apply once. Retrying the same message identity with identical content returns the original acceptance; the same identity with different content is rejected. Notifications are wake-up hints, never the only copy of the work.
 
@@ -175,12 +190,66 @@ plugs into a run:
 ```
 nandatown run quote-clean --agent seller=cmd:"python my_agent.py"
 nandatown run quote-clean --agent seller=llm:qwen2.5 --agent buyer=scripted
+nandatown run quote-clean --agent seller=a2a:http://host:8940
 nandatown run quote-clean --agent buyer=external
 ```
 
 `scripted` is the stock reference agent, `llm` and `llm:MODEL` the
-model tool loop, `cmd:COMMAND` your own process in any language, and
+model tool loop, `cmd:COMMAND` your own process in any language,
+`a2a:URL` bridges the role to an external Agent2Agent endpoint, and
 `external` hands out join credentials so an agent anywhere can connect.
+
+## The MCP and A2A edges
+
+HTTP is canonical; MCP and A2A are adapters, not competing protocols.
+
+```
+nandatown mcp serve --url http://127.0.0.1:8477 --run <run> --name seller --token <t>
+nandatown mcp test --cmd "python their_mcp_server.py"
+nandatown a2a serve --port 8940
+nandatown a2a test http://host:8940
+```
+
+`mcp serve` is a real Model Context Protocol server over stdio whose
+tools are exactly the participant surface, so Claude or any MCP host
+literally plays a role in the town. `mcp test` runs the client side of
+the handshake against any external MCP server and reports conformance.
+`a2a serve` exposes the reference seller as an Agent2Agent agent with
+an agent card and message/send; `a2a test` validates any A2A endpoint
+with a card check and a round trip.
+
+## Portable identity and signed attestations
+
+```
+nandatown identity new my-agent
+nandatown run quote-clean --identity
+```
+
+A long-lived Ed25519 controller key lives in the keystore and never
+enters a participant's environment. A Run Grant, signed by the
+controller, authorizes one disposable session key for one run with
+named permissions; the coordinator verifies the chain against the
+controller key pinned at run creation, and the report's
+portable_identity stage turns Passed with the verifying events as
+evidence. Identity resolvers are pluggable: the file registry is the
+town's testnet registry, and an eth_call resolver reads a chain
+registry whose contract and selector are configuration.
+
+Every bundle also carries an attestation: the operator's key signs the
+bundle fingerprint and verdict, so each run is a signed, replayable
+attestation with provenance. `verify` checks the signature along with
+every hash and the evaluator replay.
+
+## Walk-away recovery
+
+```
+nandatown mirror runs/<id> /backup/mirror-a
+nandatown recover sha256:<fingerprint> --mirror /backup/mirror-a --mirror /backup/mirror-b
+```
+
+Bundles are content addressed by fingerprint. Lose the original, lose
+all but one mirror, and the run still restores and verifies byte for
+byte.
 
 ## Test protocols from the upstream repo
 
@@ -313,7 +382,7 @@ One run is one scoped observation. It does not prove general reliability, provid
 
 ## Where this is heading
 
-Built here already: the Lab, the Track with scripted and model-driven tiers, the first agent-native fault (context truncation), bring-your-own-agent testing, the OpenAPI On-Ramp with a pinned catalog, Town Pulse operational history, campaigns, and the evidence pipeline under all of it. Still proposed, labeled proposed until they exist here: A2A and MCP conformance testing against the upstream kits, portable agent identity through ERC-8004 with short-lived run grants, EFS subject to the Walk-Away Test, further agent-native fault profiles (tool-choice errors, hallucinated capabilities, model version drift canaries), and a continuously operated shared testnet.
+Built here: the Lab and the Track with scripted, model-driven, command, MCP, and A2A harnesses; two agent-native faults (context truncation and lost tool results) beside the transport faults; portable identity with run grants and pluggable resolvers; signed attestations with provenance on every bundle; upstream scenario compatibility; protocol comparison; walk-away mirroring; the On-Ramp, Town Pulse, campaigns with a model-drift canary, and operator mode (docs/operators.md, service units in deploy/). The wider research vision this feeds, per the sandboxes paper: a network of interoperable, domain-specialized sandboxes whose attestations make trust measurable rather than claimed. What a shared public deployment of this code needs next is operational, not technical: named owners, funding, and stewardship.
 
 ## Development
 

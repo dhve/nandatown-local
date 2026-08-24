@@ -1,0 +1,14 @@
+[Unit]
+Description=NANDA Town coordinator
+After=network.target
+
+[Service]
+Type=simple
+User=nandatown
+EnvironmentFile=/etc/nandatown/coordinator.env
+ExecStart=/opt/nandatown/.venv/bin/nandatown coordinator --host 127.0.0.1 --port 8477 --db /var/lib/nandatown/town.db
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
