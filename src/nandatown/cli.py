@@ -333,6 +333,52 @@ def cmd_pulse(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_compare(args: argparse.Namespace) -> int:
+    from .compare import run_comparison
+
+    swaps = {}
+    for spec in args.swap:
+        layer, _, plugin_id = spec.partition("=")
+        if not plugin_id:
+            print(f"--swap {spec!r} must look like layer=plugin.id")
+            return 2
+        swaps[layer] = plugin_id
+    if not swaps:
+        print("give at least one --swap layer=plugin.id to compare"
+              " against the baseline")
+        return 2
+    compare_dir, comparison = run_comparison(
+        args.target, swaps, args.out, seed=args.seed,
+        plugins=args.plugin or None)
+    with open(f"{compare_dir}/comparison.md") as f:
+        print(f.read())
+    print(f"Comparison bundle: {compare_dir}")
+    return 0
+
+
+def cmd_mirror(args: argparse.Namespace) -> int:
+    from .mirror import mirror_bundle
+
+    destination = mirror_bundle(args.bundle_dir, args.mirror_dir)
+    print(f"mirrored to {destination}")
+    print("the address is the bundle fingerprint; any mirror holding it"
+          " can restore the run")
+    return 0
+
+
+def cmd_recover(args: argparse.Namespace) -> int:
+    from .mirror import MirrorError, recover_bundle
+
+    try:
+        restored = recover_bundle(args.fingerprint, args.mirror,
+                                  args.out)
+    except MirrorError as exc:
+        print(f"recovery failed: {exc}")
+        return 1
+    print(f"recovered and verified: {restored}")
+    return 0
+
+
 def cmd_report(args: argparse.Namespace) -> int:
     from .bundle import load_bundle
     from .report import render_report
@@ -614,6 +660,34 @@ def main(argv: list[str] | None = None) -> int:
     p_campaign.add_argument("--seed-base", type=int, default=1000)
     p_campaign.add_argument("--out", default="runs")
     p_campaign.set_defaults(func=cmd_campaign)
+
+    p_compare = sub.add_parser(
+        "compare", help="run the same scenario twice, baseline against"
+                        " swapped layer plugins, side by side")
+    p_compare.add_argument("target")
+    p_compare.add_argument("--swap", action="append", default=[],
+                           metavar="LAYER=PLUGIN_ID")
+    p_compare.add_argument("--plugin", action="append", default=[],
+                           metavar="FILE")
+    p_compare.add_argument("--seed", type=int, default=None)
+    p_compare.add_argument("--out", default="runs")
+    p_compare.set_defaults(func=cmd_compare)
+
+    p_mirror = sub.add_parser(
+        "mirror", help="store a content-addressed copy of a bundle in"
+                       " a mirror directory")
+    p_mirror.add_argument("bundle_dir")
+    p_mirror.add_argument("mirror_dir")
+    p_mirror.set_defaults(func=cmd_mirror)
+
+    p_recover = sub.add_parser(
+        "recover", help="restore a bundle by fingerprint from any"
+                        " surviving mirror and verify it")
+    p_recover.add_argument("fingerprint")
+    p_recover.add_argument("--mirror", action="append", default=[],
+                           required=False)
+    p_recover.add_argument("--out", default="runs")
+    p_recover.set_defaults(func=cmd_recover)
 
     p_pulse = sub.add_parser(
         "pulse", help="probe registered services on a schedule and keep"
