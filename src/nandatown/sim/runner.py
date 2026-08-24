@@ -38,9 +38,26 @@ def build_engine(spec: ScenarioSpec) -> Engine:
     return engine
 
 
+def load_plugin_files(paths: list[str]) -> None:
+    """Import the user's plugin files so their @register and @validator
+    decorators run. These are the user's own local files; running a
+    scenario that names them is running their code by request."""
+    import importlib.util
+
+    for i, path in enumerate(paths):
+        spec = importlib.util.spec_from_file_location(
+            f"nandatown_user_plugin_{i}", path)
+        if spec is None or spec.loader is None:
+            raise LabError(f"cannot load plugin file {path}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+
 def resolve_spec(name_or_path: str) -> ScenarioSpec:
     if name_or_path.endswith((".yaml", ".yml")) or os.sep in name_or_path:
-        return load_scenario_file(name_or_path)
+        spec = load_scenario_file(name_or_path)
+        load_plugin_files(spec.plugin_files)
+        return spec
     return load_bundled(name_or_path)
 
 

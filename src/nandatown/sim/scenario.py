@@ -43,6 +43,7 @@ class ScenarioSpec(BaseModel):
     redact_fields: list[str] = []
     max_time: float = 1000.0
     validator: str = ""
+    plugin_files: list[str] = []
 
     @model_validator(mode="after")
     def _fill_defaults(self):
@@ -62,8 +63,16 @@ def load_scenario_text(text: str) -> ScenarioSpec:
 
 
 def load_scenario_file(path: str) -> ScenarioSpec:
+    import os
+
     with open(path) as f:
-        return load_scenario_text(f.read())
+        spec = load_scenario_text(f.read())
+    base = os.path.dirname(os.path.abspath(path))
+    spec.plugin_files = [
+        p if os.path.isabs(p) else os.path.join(base, p)
+        for p in spec.plugin_files
+    ]
+    return spec
 
 
 def _bundled_dir():

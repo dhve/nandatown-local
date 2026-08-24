@@ -27,11 +27,23 @@ src/nandatown/
                    fencing tokens, idempotent accept, event log
   coordinator.py   FastAPI app over db.py plus coordinator-side faults
   client.py        participant HTTP client with safe 503 retries
-  participants/    stock buyer and seller subprocess agents with journals
-  profiles.py      the five Track profiles (the boring quote)
-  runner.py        run_town: coordinator subprocess, participants,
+  participants/    buyer.py and seller.py (tier one, scripted) and
+                   llm.py (tier two: the model tool-loop harness with
+                   MockBrain default, OpenAI-compatible endpoints, and
+                   the context_truncation agent-native fault)
+  profiles.py      the seven Track profiles (the boring quote)
+  runner.py        run_town: coordinator subprocess, participants by
+                   runtime, external command overrides for BYOA,
                    crash restart, evaluation, bundle
   evaluator.py     the Track stage evaluator
+
+  onramp.py        OpenAPI to reviewable SkillMD candidate: snapshot,
+                   exact release fingerprint, structural checks as
+                   evidence records, pinned services catalog
+  pulse.py         Town Pulse: scheduled probes, SQLite history,
+                   availability report, operational-history records
+  new.py           scaffolding templates (scenario, plugin, skill, agent)
+  board.py         the local leaderboard over evidence bundles
 
   bundle.py        write, load, verify evidence bundles (both modes)
   report.py        the System Fitness Report renderer

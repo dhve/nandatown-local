@@ -286,6 +286,26 @@ def cmd_visualize(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_new(args: argparse.Namespace) -> int:
+    from .new import HINTS, ScaffoldError, scaffold
+
+    try:
+        path = scaffold(args.kind, args.name, args.extra, args.dir)
+    except ScaffoldError as exc:
+        print(str(exc))
+        return 2
+    print(f"wrote {path}")
+    print(HINTS[args.kind].format(path=path))
+    return 0
+
+
+def cmd_board(args: argparse.Namespace) -> int:
+    from .board import render_board
+
+    print(render_board(args.dir), end="")
+    return 0
+
+
 def cmd_schemas(args: argparse.Namespace) -> int:
     from .schemas import export_schemas
 
@@ -434,6 +454,24 @@ def main(argv: list[str] | None = None) -> int:
     p_vis.add_argument("bundle_dir")
     p_vis.add_argument("-o", "--output", default=None)
     p_vis.set_defaults(func=cmd_visualize)
+
+    p_new = sub.add_parser(
+        "new", help="scaffold a scenario, plugin, skill, or agent from"
+                    " a working template")
+    p_new.add_argument("kind",
+                       choices=["scenario", "plugin", "skill", "agent"])
+    p_new.add_argument("name", help="scenario/skill/agent name, or the"
+                                    " LAYER for a plugin")
+    p_new.add_argument("extra", nargs="?", default=None,
+                       help="plugin id when kind is plugin, e.g."
+                            " mytrust.v1")
+    p_new.add_argument("--dir", default=".")
+    p_new.set_defaults(func=cmd_new)
+
+    p_board = sub.add_parser(
+        "board", help="the local leaderboard over a runs directory")
+    p_board.add_argument("dir", nargs="?", default="runs")
+    p_board.set_defaults(func=cmd_board)
 
     p_schemas = sub.add_parser("schemas", help="export the shared JSON"
                                                " Schemas")
