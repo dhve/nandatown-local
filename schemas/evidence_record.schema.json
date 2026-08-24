@@ -1,0 +1,58 @@
+{
+  "$id": "https://nandatown.local/schemas/evidence_record.schema.json",
+  "description": "One observer's result about one exact subject at one time.",
+  "properties": {
+    "at": {
+      "title": "At",
+      "type": "number"
+    },
+    "capability": {
+      "title": "Capability",
+      "type": "string"
+    },
+    "evidence": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "observer": {
+      "title": "Observer",
+      "type": "string"
+    },
+    "record_id": {
+      "title": "Record Id",
+      "type": "string"
+    },
+    "result": {
+      "enum": [
+        "passed",
+        "failed",
+        "not_enough_evidence"
+      ],
+      "title": "Result",
+      "type": "string"
+    },
+    "subject": {
+      "title": "Subject",
+      "type": "string"
+    },
+    "test": {
+      "title": "Test",
+      "type": "string"
+    }
+  },
+  "required": [
+    "record_id",
+    "observer",
+    "subject",
+    "capability",
+    "test",
+    "result",
+    "at"
+  ],
+  "title": "EvidenceRecord",
+  "type": "object"
+}

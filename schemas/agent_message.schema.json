@@ -1,0 +1,65 @@
+{
+  "$id": "https://nandatown.local/schemas/agent_message.schema.json",
+  "description": "One point-to-point work request or response between agents.",
+  "properties": {
+    "body": {
+      "additionalProperties": true,
+      "title": "Body",
+      "type": "object"
+    },
+    "content_fingerprint": {
+      "title": "Content Fingerprint",
+      "type": "string"
+    },
+    "conversation": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Conversation"
+    },
+    "expires_at": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expires At"
+    },
+    "kind": {
+      "title": "Kind",
+      "type": "string"
+    },
+    "message_id": {
+      "title": "Message Id",
+      "type": "string"
+    },
+    "sender": {
+      "title": "Sender",
+      "type": "string"
+    },
+    "to": {
+      "title": "To",
+      "type": "string"
+    }
+  },
+  "required": [
+    "message_id",
+    "sender",
+    "to",
+    "kind",
+    "body",
+    "content_fingerprint"
+  ],
+  "title": "AgentMessage",
+  "type": "object"
+}

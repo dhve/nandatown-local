@@ -1,0 +1,125 @@
+{
+  "$defs": {
+    "AgentSpec": {
+      "properties": {
+        "config": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Config",
+          "type": "object"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "role"
+      ],
+      "title": "AgentSpec",
+      "type": "object"
+    },
+    "FaultRule": {
+      "properties": {
+        "action": {
+          "enum": [
+            "drop",
+            "duplicate",
+            "delay"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "delay": {
+          "default": 0.0,
+          "title": "Delay",
+          "type": "number"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "nth": {
+          "default": 1,
+          "title": "Nth",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "action",
+        "kind"
+      ],
+      "title": "FaultRule",
+      "type": "object"
+    }
+  },
+  "$id": "https://nandatown.local/schemas/scenario.schema.json",
+  "properties": {
+    "agents": {
+      "items": {
+        "$ref": "#/$defs/AgentSpec"
+      },
+      "title": "Agents",
+      "type": "array"
+    },
+    "description": {
+      "default": "",
+      "title": "Description",
+      "type": "string"
+    },
+    "faults": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/FaultRule"
+      },
+      "title": "Faults",
+      "type": "array"
+    },
+    "layers": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {},
+      "title": "Layers",
+      "type": "object"
+    },
+    "max_time": {
+      "default": 1000.0,
+      "title": "Max Time",
+      "type": "number"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "redact_fields": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Redact Fields",
+      "type": "array"
+    },
+    "seed": {
+      "default": 42,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "validator": {
+      "default": "",
+      "title": "Validator",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "agents"
+  ],
+  "title": "ScenarioSpec",
+  "type": "object"
+}

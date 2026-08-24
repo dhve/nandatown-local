@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "StageResult": {
+      "properties": {
+        "evidence": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "title": "Note",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "not_enough_evidence",
+            "not_tested"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "status"
+      ],
+      "title": "StageResult",
+      "type": "object"
+    }
+  },
+  "$id": "https://nandatown.local/schemas/evidence_result.schema.json",
+  "description": "The evaluator's output: one scoped observation, never a certificate.",
+  "properties": {
+    "evaluated_at": {
+      "title": "Evaluated At",
+      "type": "number"
+    },
+    "evaluator_version": {
+      "title": "Evaluator Version",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "stages": {
+      "items": {
+        "$ref": "#/$defs/StageResult"
+      },
+      "title": "Stages",
+      "type": "array"
+    },
+    "verdict": {
+      "enum": [
+        "passed",
+        "failed",
+        "incomplete"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "evaluator_version",
+    "stages",
+    "verdict",
+    "evaluated_at"
+  ],
+  "title": "EvidenceResult",
+  "type": "object"
+}

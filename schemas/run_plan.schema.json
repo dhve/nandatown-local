@@ -1,0 +1,96 @@
+{
+  "$defs": {
+    "QuoteTask": {
+      "properties": {
+        "expected_total_cents": {
+          "title": "Expected Total Cents",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "quote",
+          "title": "Kind",
+          "type": "string"
+        },
+        "quantity": {
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "sku": {
+          "title": "Sku",
+          "type": "string"
+        },
+        "unit_price_cents": {
+          "title": "Unit Price Cents",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "sku",
+        "quantity",
+        "unit_price_cents",
+        "expected_total_cents"
+      ],
+      "title": "QuoteTask",
+      "type": "object"
+    }
+  },
+  "$id": "https://nandatown.local/schemas/run_plan.schema.json",
+  "description": "The recipe: roles, task, conditions, evaluator.",
+  "properties": {
+    "capabilities": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Capabilities",
+      "type": "object"
+    },
+    "evaluator": {
+      "title": "Evaluator",
+      "type": "string"
+    },
+    "fault": {
+      "enum": [
+        "none",
+        "drop_wakeup",
+        "duplicate_delivery",
+        "lost_ack",
+        "crash_after_claim"
+      ],
+      "title": "Fault",
+      "type": "string"
+    },
+    "lease_seconds": {
+      "title": "Lease Seconds",
+      "type": "number"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "roles": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Roles",
+      "type": "object"
+    },
+    "task": {
+      "$ref": "#/$defs/QuoteTask"
+    }
+  },
+  "required": [
+    "name",
+    "task",
+    "roles",
+    "capabilities",
+    "fault",
+    "lease_seconds",
+    "evaluator"
+  ],
+  "title": "TestProfile",
+  "type": "object"
+}

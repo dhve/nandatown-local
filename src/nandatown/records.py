@@ -91,6 +91,41 @@ class TownEvent(BaseModel):
     detail: dict[str, Any] = {}
 
 
+class AgentMessage(BaseModel):
+    """One point-to-point work request or response between agents."""
+
+    message_id: str
+    conversation: str | None = None
+    sender: str
+    to: str
+    kind: str
+    body: dict[str, Any]
+    content_fingerprint: str
+    expires_at: float | None = None
+
+
+class ReleaseRef(BaseModel):
+    """The exact release of a skill, scenario, plugin, or package."""
+
+    kind: Literal["skill", "scenario", "plugin", "package", "profile"]
+    name: str
+    version: str
+    content_fingerprint: str
+
+
+class EvidenceRecord(BaseModel):
+    """One observer's result about one exact subject at one time."""
+
+    record_id: str
+    observer: str
+    subject: str
+    capability: str
+    test: str
+    result: Literal["passed", "failed", "not_enough_evidence"]
+    at: float
+    evidence: list[str] = []
+
+
 StageStatus = Literal["passed", "failed", "not_enough_evidence", "not_tested"]
 
 

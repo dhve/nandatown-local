@@ -1,0 +1,46 @@
+{
+  "$id": "https://nandatown.local/schemas/town_event.schema.json",
+  "description": "One time-stamped attributed fact: what one observer saw.",
+  "properties": {
+    "at": {
+      "title": "At",
+      "type": "number"
+    },
+    "detail": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Detail",
+      "type": "object"
+    },
+    "event_id": {
+      "title": "Event Id",
+      "type": "string"
+    },
+    "kind": {
+      "title": "Kind",
+      "type": "string"
+    },
+    "observer": {
+      "title": "Observer",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "subject": {
+      "title": "Subject",
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_id",
+    "run_id",
+    "at",
+    "observer",
+    "kind",
+    "subject"
+  ],
+  "title": "TownEvent",
+  "type": "object"
+}

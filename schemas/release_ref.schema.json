@@ -1,0 +1,37 @@
+{
+  "$id": "https://nandatown.local/schemas/release_ref.schema.json",
+  "description": "The exact release of a skill, scenario, plugin, or package.",
+  "properties": {
+    "content_fingerprint": {
+      "title": "Content Fingerprint",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "skill",
+        "scenario",
+        "plugin",
+        "package",
+        "profile"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind",
+    "name",
+    "version",
+    "content_fingerprint"
+  ],
+  "title": "ReleaseRef",
+  "type": "object"
+}
