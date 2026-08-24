@@ -1,0 +1,42 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "PayLite",
+    "version": "1.4.0",
+    "description": "A small payments API used as the low-risk first onramp fixture."
+  },
+  "servers": [
+    {"url": "https://api.paylite.example"}
+  ],
+  "components": {
+    "securitySchemes": {
+      "apiKey": {"type": "apiKey", "in": "header", "name": "X-Api-Key"}
+    }
+  },
+  "paths": {
+    "/quotes/{id}": {
+      "get": {
+        "operationId": "getQuote",
+        "summary": "Fetch one quote by id"
+      }
+    },
+    "/balance": {
+      "get": {
+        "operationId": "getBalance",
+        "summary": "Read the account balance"
+      }
+    },
+    "/payments": {
+      "post": {
+        "operationId": "createPayment",
+        "summary": "Create a payment"
+      }
+    },
+    "/refunds": {
+      "post": {
+        "operationId": "createRefund",
+        "summary": "Refund a payment"
+      }
+    }
+  }
+}

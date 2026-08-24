@@ -109,7 +109,8 @@ class AgentMessage(BaseModel):
 class ReleaseRef(BaseModel):
     """The exact release of a skill, scenario, plugin, or package."""
 
-    kind: Literal["skill", "scenario", "plugin", "package", "profile"]
+    kind: Literal["skill", "scenario", "plugin", "package", "profile",
+                  "service"]
     name: str
     version: str
     content_fingerprint: str

@@ -148,6 +148,55 @@ def cmd_skills(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_onramp(args: argparse.Namespace) -> int:
+    import json
+
+    from .onramp import OnrampError, onramp
+
+    try:
+        candidate_dir = onramp(args.spec, name=args.name, out_dir=args.out)
+    except OnrampError as exc:
+        print(f"onramp failed: {exc}")
+        return 1
+    print(f"candidate written to {candidate_dir}")
+    with open(f"{candidate_dir}/checks.jsonl") as f:
+        for line in f:
+            check = json.loads(line)
+            print(f"  {check['test']:<18} {check['result']:<22}"
+                  f" {'; '.join(check['evidence'][:2])}")
+    print("status: candidate-unclaimed. The SKILL.md is a claim, not a"
+          " fact; review the open questions, then town tests and"
+          " provider authorization become separate evidence.")
+    return 0
+
+
+def cmd_services(args: argparse.Namespace) -> int:
+    from .onramp import catalog_entries
+
+    entries = catalog_entries(args.dir)
+    if not entries:
+        print(f"no services in {args.dir}; onboard one with:"
+              " nandatown onramp <openapi.json>")
+        return 0
+    if args.name:
+        entry = next((e for e in entries if e["name"] == args.name), None)
+        if entry is None:
+            print(f"no service {args.name!r} in the catalog")
+            return 1
+        with open(f"{args.dir}/{args.name}/SKILL.md") as f:
+            print(f.read(), end="")
+        return 0
+    width = max(len(e["name"]) for e in entries)
+    for e in entries:
+        checks = e["checks"]
+        print(f"{e['name'].ljust(width)}  {e['status']}"
+              f"  ops {e['operations']}"
+              f"  checks passed {checks['passed']}"
+              f" failed {checks['failed']} unknown {checks['unknown']}"
+              f"  {e['fingerprint'][:19]}")
+    return 0
+
+
 def cmd_campaign(args: argparse.Namespace) -> int:
     from .campaign import run_campaign
 
@@ -289,6 +338,23 @@ def main(argv: list[str] | None = None) -> int:
     p_skills.add_argument("name", nargs="?", default=None)
     p_skills.add_argument("--validate", metavar="PATH", default=None)
     p_skills.set_defaults(func=cmd_skills)
+
+    p_onramp = sub.add_parser(
+        "onramp", help="turn a local OpenAPI document into a reviewable"
+                       " SkillMD candidate with structural checks")
+    p_onramp.add_argument("spec", help="path to a local openapi.json or"
+                                       " .yaml (never fetched, never"
+                                       " executed)")
+    p_onramp.add_argument("--name", default=None)
+    p_onramp.add_argument("--out", default="services")
+    p_onramp.set_defaults(func=cmd_onramp)
+
+    p_services = sub.add_parser("services",
+                                help="list the pinned services catalog,"
+                                     " or show one candidate's SKILL.md")
+    p_services.add_argument("name", nargs="?", default=None)
+    p_services.add_argument("--dir", default="services")
+    p_services.set_defaults(func=cmd_services)
 
     p_campaign = sub.add_parser(
         "campaign", help="run a precommitted campaign and report the"
