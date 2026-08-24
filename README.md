@@ -8,11 +8,18 @@ This is a local-first developer sandbox and test harness for NANDA protocols, se
 
 ## Install
 
+From the repository root, in a virtual environment:
+
 ```
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e .
 ```
 
-Python 3.11 or newer.
+Python 3.11 or newer. The venv step matters on macOS and modern
+Linux: Homebrew and distro Pythons are externally managed (PEP 668)
+and refuse bare pip installs. `pipx install .` works too if you prefer
+pipx-managed CLIs.
 
 ## One command
 
