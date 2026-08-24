@@ -189,6 +189,21 @@ def evaluate(profile: TestProfile, run_id: str,
             stages.append(_missing("ack_retry_survived",
                                    "no dropped acknowledgement followed by"
                                    " a recorded retry"))
+    elif fault == "tool_error":
+        errored = [e for e in events if e.kind == "ack_recorded"
+                   and e.detail.get("note", {})
+                   .get("tool_errors", 0) >= 1]
+        if errored and processed:
+            stages.append(_passed(
+                "tool_error_survived",
+                [e.event_id for e in errored[:4]],
+                "a lost tool result was noticed, retried, and the task"
+                " still completed"))
+        else:
+            stages.append(_missing(
+                "tool_error_survived",
+                "no participant reported recovering from a lost tool"
+                " result"))
     elif fault == "context_truncation":
         truncated = [e for e in events if e.kind == "ack_recorded"
                      and e.detail.get("note", {})

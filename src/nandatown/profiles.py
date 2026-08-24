@@ -42,6 +42,8 @@ PROFILES: dict[str, TestProfile] = {
     "quote-llm": _profile("quote-llm", "none", 5.0, _LLM),
     "quote-llm-truncation": _profile("quote-llm-truncation",
                                      "context_truncation", 5.0, _LLM),
+    "quote-llm-tool-error": _profile("quote-llm-tool-error",
+                                     "tool_error", 5.0, _LLM),
 }
 
 DEFAULT_PROFILE = "quote-crash-restart"
@@ -61,4 +63,7 @@ FAULT_DESCRIPTIONS = {
     "quote-llm-truncation": "tier two plus the first agent-native fault:"
                             " context truncated mid-run, the protocol must"
                             " carry the recovery",
+    "quote-llm-tool-error": "tier two plus the second agent-native fault:"
+                            " a tool result is lost mid-call and the agent"
+                            " must notice and retry",
 }

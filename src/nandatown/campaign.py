@@ -66,6 +66,12 @@ def run_campaign(name: str, trials: int, out_dir: str,
             record["verdict"] = result.verdict
             record["bundle"] = os.path.basename(bundle_dir)
             record["stages"] = {s.name: s.status for s in result.stages}
+            run_path = os.path.join(bundle_dir, "run.json")
+            if os.path.exists(run_path):
+                with open(run_path) as f:
+                    run_config = json.load(f).get("config", {})
+                if "model" in run_config:
+                    record["model"] = run_config["model"]
         except Exception as exc:
             record["verdict"] = "error"
             record["error"] = f"{type(exc).__name__}: {exc}"
@@ -80,6 +86,8 @@ def run_campaign(name: str, trials: int, out_dir: str,
             stage_counts[stage][status] = \
                 stage_counts[stage].get(status, 0) + 1
 
+    observed_models = sorted({r["model"] for r in trial_records
+                              if "model" in r})
     aggregate = {
         "campaign_id": campaign_id,
         "name": name,
@@ -88,6 +96,8 @@ def run_campaign(name: str, trials: int, out_dir: str,
         "verdicts": verdicts,
         "stages": stage_counts,
         "trial_records": trial_records,
+        "observed_models": observed_models,
+        "model_drift_detected": len(observed_models) > 1,
         "completed_at": time.time(),
     }
     with open(os.path.join(campaign_dir, "aggregate.json"), "w") as f:
@@ -118,6 +128,17 @@ def render_campaign_report(plan: dict[str, Any],
         parts = ", ".join(f"{k} {v}" for k, v in sorted(counts.items()))
         add(f"  {stage.ljust(width)}  {parts}")
     add("")
+    if aggregate.get("observed_models"):
+        models = ", ".join(aggregate["observed_models"])
+        if aggregate.get("model_drift_detected"):
+            add(f"Model drift DETECTED across trials: {models}. A hosted"
+                " model changed underneath a pinned release; treat the"
+                " distribution accordingly.")
+        else:
+            add(f"Observed model, stable across trials: {models}."
+                " Hosted models are mutable dependencies; this canary"
+                " watches for drift.")
+        add("")
     add("The unit of evidence is this distribution, not any single run."
         " Any single result is one scoped observation.")
     return "\n".join(lines) + "\n"

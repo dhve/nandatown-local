@@ -118,6 +118,9 @@ class MockBrain:
              tools: list[dict[str, Any]]) -> dict[str, Any]:
         history = self._history(messages)
         task = self._task(messages)
+        if history and history[-1][2].startswith("error:"):
+            name, args, _ = history[-1]
+            return self._call(name, json.loads(args or "{}"))
         idle = sum(1 for name, _, result in history
                    if name == "claim_work" and "no work" in result)
         if self.role == "seller":
@@ -246,6 +249,9 @@ class LLMParticipant:
         self.journal = Journal(os.path.join(state_dir, "journal.db"))
         self.fault = fault
         self.truncations = 0
+        self.tool_errors = 0
+        self._tool_error_fired = False
+        self._stashed_claim: dict[str, Any] | None = None
         self.current_claim: dict[str, Any] | None = None
         self.exit_code: int | None = None
         self.messages: list[dict[str, Any]] = []
@@ -267,11 +273,25 @@ class LLMParticipant:
         return json.dumps(self.client.participants())
 
     def _tool_claim_work(self, args: dict[str, Any]) -> str:
+        if self._stashed_claim is not None:
+            claim = self._stashed_claim
+            self._stashed_claim = None
+            self.current_claim = claim
+            return json.dumps(claim)
         self.client.notify(wait=0.4)
         claim = self.client.claim()
         if claim is None:
             return "no work right now"
         claim["already_processed"] = self.journal.seen(claim["message_id"])
+        if (self.fault == "tool_error" and not self._tool_error_fired):
+            # The agent-native fault: the tool result is lost mid-call.
+            # The claim is real and its lease is running; the agent has
+            # to notice the error and retry the tool to recover it.
+            self._tool_error_fired = True
+            self.tool_errors += 1
+            self._stashed_claim = claim
+            return ("error: tool result lost mid-call; retry the same"
+                    " tool")
         self.current_claim = claim
         return json.dumps(claim)
 
@@ -285,6 +305,7 @@ class LLMParticipant:
             return "error: no claimed work to acknowledge"
         note = dict(args.get("note") or {})
         note["context_truncations"] = self.truncations
+        note["tool_errors"] = self.tool_errors
         try:
             self.client.ack(self.current_claim["message_id"],
                             self.current_claim["fence"],
