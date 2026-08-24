@@ -391,6 +391,46 @@ def capability_spoofing(spec, trace: Trace) -> list[StageResult]:
     return stages
 
 
+COMPLETION_KINDS = ["offer_accepted", "vote_result",
+                    "consensus_committed", "task_awarded",
+                    "escrow_released", "receipt_attested"]
+
+
+@validator("adapted")
+def adapted(spec, trace: Trace) -> list[StageResult]:
+    """Generic system fitness for scenarios adapted from upstream:
+    the population came up, discovery worked, messages moved, and the
+    task flow reached a completion fact."""
+    stages = []
+    joined = trace.find("participant_joined")
+    stages.append(_check(
+        "population_active", len(joined) == len(spec.agents),
+        [e.event_id for e in joined[:8]],
+        f"expected all {len(spec.agents)} adapted agents to join"))
+
+    registered = trace.ids("card_registered")
+    stages.append(_check(
+        "discovery", bool(registered), registered,
+        "no agent published a card to the town index"))
+
+    sent = trace.find("message_sent")
+    delivered = trace.find("message_delivered")
+    stages.append(_check(
+        "messages_flowed", bool(sent) and bool(delivered),
+        [e.event_id for e in delivered[:6]],
+        "no messages moved between agents"))
+
+    completions = []
+    for kind in COMPLETION_KINDS:
+        completions.extend(trace.find(kind))
+    stages.append(_check(
+        "task_completed", bool(completions),
+        [e.event_id for e in completions[:6]],
+        "no completion fact (agreement, tally, award, settlement, or"
+        " receipt) appears in the trace"))
+    return stages
+
+
 def evaluate_scenario(spec, run_id: str,
                       events: list[TownEvent]) -> EvidenceResult:
     trace = Trace(events)

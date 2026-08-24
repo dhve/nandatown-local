@@ -91,6 +91,8 @@ def render_report(bundle: dict[str, Any]) -> str:
     if bundle.get("mode") == "lab":
         add(f"Duration:  {run.config.get('logical_time', 0):.1f} logical"
             " seconds, deterministic")
+        for note in getattr(profile, "adaptations", []) or []:
+            add(f"Adapted:   {note}")
     else:
         created = time.strftime("%Y-%m-%d %H:%M:%S UTC",
                                 time.gmtime(run.created_at))

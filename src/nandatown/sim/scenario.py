@@ -27,10 +27,11 @@ class AgentSpec(BaseModel):
 class FaultRule(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    action: Literal["drop", "duplicate", "delay"]
-    kind: str
+    action: Literal["drop", "duplicate", "delay", "drop_rate"]
+    kind: str = ""
     nth: int = 1
     delay: float = 0.0
+    rate: float = 0.0
 
 
 class ScenarioSpec(BaseModel):
@@ -44,6 +45,7 @@ class ScenarioSpec(BaseModel):
     max_time: float = 1000.0
     validator: str = ""
     plugin_files: list[str] = []
+    adaptations: list[str] = []
 
     @model_validator(mode="after")
     def _fill_defaults(self):
@@ -59,7 +61,12 @@ class ScenarioSpec(BaseModel):
 
 
 def load_scenario_text(text: str) -> ScenarioSpec:
-    return ScenarioSpec.model_validate(yaml.safe_load(text))
+    data = yaml.safe_load(text)
+    if isinstance(data, dict) and isinstance(data.get("agents"), dict):
+        from .upstream import adapt_upstream
+
+        return adapt_upstream(data)
+    return ScenarioSpec.model_validate(data)
 
 
 def load_scenario_file(path: str) -> ScenarioSpec:

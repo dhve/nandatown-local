@@ -26,6 +26,10 @@ class MemoryTransport:
         for i, rule in enumerate(self.rules):
             if rule.get("kind") and rule["kind"] != envelope["kind"]:
                 continue
+            if rule.get("action") == "drop_rate":
+                if self.engine.rng.random() < rule.get("rate", 0.0):
+                    return rule
+                continue
             self.counts[i] += 1
             if self.counts[i] == rule.get("nth", 1):
                 return rule
@@ -49,6 +53,11 @@ class MemoryTransport:
             engine.schedule(latency, deliver)
             return
         action = rule.get("action")
+        if action == "drop_rate":
+            engine.emit("town", "message_dropped", envelope["message_id"],
+                        {"to": to, "kind": envelope["kind"],
+                         "fault": "drop_rate", "rate": rule.get("rate")})
+            return
         if action == "drop":
             engine.emit("town", "message_dropped", envelope["message_id"],
                         {"to": to, "kind": envelope["kind"], "fault": "drop"})
