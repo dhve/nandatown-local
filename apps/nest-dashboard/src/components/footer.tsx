@@ -66,6 +66,9 @@ export function Footer() {
             <FooterLink href="https://projectnanda.org" external>
               Project NANDA
             </FooterLink>
+            <FooterLink href="https://maritime.sh" external>
+              Maritime &middot; agent hosting
+            </FooterLink>
           </FooterColumn>
 
           <FooterColumn title="Community">

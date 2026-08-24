@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { experiments, scenarioColors } from '@/lib/demo-data';
 import { ImagePlaceholder } from '@/components/image-placeholder';
+import { MaritimeCallout } from '@/components/maritime-callout';
 
 const scenarioFilters = [
   'All',
@@ -400,6 +401,8 @@ export default function ExperimentsPage() {
                 <code>$ pip install &quot;nest-core[plugins]&quot;
 $ nest run marketplace</code>
               </pre>
+
+              <MaritimeCallout className="mt-5" />
 
               <div className="mt-8">
                 <Link href="/docs" className="btn-secondary">

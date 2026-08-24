@@ -9,6 +9,7 @@ import {
 } from 'react';
 import Image from 'next/image';
 import * as d3 from 'd3';
+import { MaritimeCallout } from '@/components/maritime-callout';
 
 /* ------------------------------------------------------------------ */
 /*  Real Nanda Town trace format                                      */
@@ -2000,6 +2001,11 @@ export default function VisualizerPage() {
                 <MessageStream derived={derived} simTime={simTime} />
               </div>
             </div>
+
+            <MaritimeCallout
+              className="mt-6"
+              title="Want to run this with agents in the cloud?"
+            />
           </div>
         )}
       </div>

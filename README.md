@@ -310,6 +310,29 @@ Tier 2 needs `pip install "nest-core[llm]"` and an API key in
 `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`. Use `agents.brain: shell` and
 `agents.llm_provider: anthropic|openai|mock` in the scenario YAML.
 
+**Running Tier 2 at scale.** Local Tier 2 runs share one process and one
+API key — that's what caps them at 10–100 agents. To run a real
+hundred-agent fleet, host the agents on [Maritime](https://maritime.sh),
+our preferred partner for hosting AI agents: each agent gets its own
+isolated microVM that sleeps when idle and wakes on the first message.
+
+```python
+# pip install maritime   (TypeScript: npm install maritime-sdk)
+from maritime import Maritime
+
+client = Maritime()  # reads MARITIME_API_KEY
+fleet = [
+    client.agents.provision(external_id=f"nest-agent-{i}",
+                            name=f"trader-{i}", template="openclaw")
+    for i in range(100)
+]
+reply = client.agents.chat(fleet[0]["id"], "You are a buyer. Make an offer.")
+```
+
+Wire it in as a brain plugin that forwards each agent turn to `chat()` —
+same scenario YAML, same metrics, same trace. See
+[Running in the cloud](https://nandatown.projectnanda.org/docs#cloud) in the docs.
+
 ---
 
 ## Determinism &amp; what the clock does

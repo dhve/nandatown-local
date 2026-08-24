@@ -23,6 +23,7 @@ const TOC: TocItem[] = [
   { id: 'layers', label: 'The twelve layers' },
   { id: 'metrics', label: 'Metrics' },
   { id: 'templates', label: 'Agent templates' },
+  { id: 'cloud', label: 'Running in the cloud' },
   { id: 'plugins', label: 'Writing a plugin' },
   { id: 'cli', label: 'CLI reference' },
   { id: 'troubleshooting', label: 'Troubleshooting' },
@@ -661,6 +662,14 @@ export default function DocsPage() {
                 changing <InlineCode>brain: state-machine</InlineCode> to{' '}
                 <InlineCode>brain: llm</InlineCode> in your YAML. Nothing else
                 changes &mdash; same layers, same metrics, same trace file.
+                And if local API limits are holding your Tier 2 run back, see{' '}
+                <a
+                  href="#cloud"
+                  className="font-medium text-rust hover:text-ink-900 transition-colors"
+                >
+                  Running in the cloud
+                </a>
+                .
               </p>
             </div>
           </Section>
@@ -1038,6 +1047,89 @@ nest templates show <name>       # View a template
 nest templates create <name>     # Create from scratch
 nest templates duplicate <src> <dest>  # Copy and modify`}
             </CodeBlock>
+          </Section>
+
+          <div className="h-px bg-cream-400/70" />
+
+          {/* Running in the cloud */}
+          <Section id="cloud" eyebrow="Scale" title="Running agents in the cloud">
+            <p className="mb-6 text-[1.05rem] leading-[1.7] text-ink-500">
+              Tier 2 runs on your laptop share one process and one API key
+              &mdash; that is what holds them at 10&ndash;100 agents. If you
+              want a real hundred-agent town, give each agent its own home in
+              the cloud instead.
+            </p>
+            <p className="mb-6 text-[1.05rem] leading-[1.7] text-ink-500">
+              <a
+                href="https://maritime.sh"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-rust hover:text-ink-900 transition-colors"
+              >
+                Maritime
+              </a>{' '}
+              is our preferred partner for hosting AI agents. Every agent gets
+              its own isolated microVM that sleeps when idle and wakes on the
+              first message, so provisioning 100 agents is one loop &mdash;
+              not 100 terminals.
+            </p>
+
+            <TerminalBlock>
+{`$ pip install maritime        # TypeScript: npm install maritime-sdk`}
+            </TerminalBlock>
+
+            <CodeBlock title="provision_fleet.py">
+{`from maritime import Maritime
+
+client = Maritime()  # reads MARITIME_API_KEY
+
+# 100 hosted agents. provision() is idempotent on external_id,
+# so re-running this is safe.
+fleet = [
+    client.agents.provision(
+        external_id=f"nest-agent-{i}",
+        name=f"trader-{i}",
+        template="openclaw",
+    )
+    for i in range(100)
+]`}
+            </CodeBlock>
+
+            <p className="mb-3 text-[0.95rem] leading-[1.65] text-ink-500">
+              Then drive each simulated agent from its hosted counterpart.
+              Each turn is one call &mdash; sleeping agents wake automatically:
+            </p>
+
+            <CodeBlock>
+{`reply = client.agents.chat(agent["id"], prompt)["response"]`}
+            </CodeBlock>
+
+            <p className="mb-3 text-[0.95rem] leading-[1.65] text-ink-500">
+              The clean way to wire this in is a small brain plugin that
+              forwards each agent turn to <InlineCode>chat()</InlineCode>{' '}
+              &mdash; the same plugin mechanism as any other layer (see{' '}
+              <a
+                href="#plugins"
+                className="font-medium text-rust hover:text-ink-900 transition-colors"
+              >
+                Writing a plugin
+              </a>
+              ). Everything else stays the same: same scenario YAML, same
+              metrics, same trace file.
+            </p>
+            <p className="text-[0.95rem] leading-[1.65] text-ink-500">
+              You will need an API key (<InlineCode>mk_...</InlineCode>) from
+              the{' '}
+              <a
+                href="https://maritime.sh"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-rust hover:text-ink-900 transition-colors"
+              >
+                Maritime dashboard
+              </a>{' '}
+              under Settings &rarr; API keys.
+            </p>
           </Section>
 
           <div className="h-px bg-cream-400/70" />
