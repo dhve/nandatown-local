@@ -250,6 +250,14 @@ class TownDB:
                          "content_fingerprint": content_fingerprint})
             return now, False
 
+    def message_kind(self, run_id: str, message_id: str) -> str | None:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT kind FROM messages WHERE run_id=? AND message_id=?",
+                (run_id, message_id),
+            ).fetchone()
+        return row["kind"] if row else None
+
     def pop_notify(self, run_id: str, recipient: str) -> bool:
         """Consume one pending wake-up hint, if any."""
         with self._conn() as conn:

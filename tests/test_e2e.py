@@ -22,3 +22,11 @@ def test_crash_restart_run_end_to_end(tmp_path):
     assert stage(result, "stale_fence_rejected").status == "passed", detail
     assert result.verdict == "passed", detail
     assert verify_bundle(bundle_dir) == []
+
+
+def test_duplicate_delivery_run_end_to_end(tmp_path):
+    bundle_dir, result = run_town("quote-duplicate-delivery", str(tmp_path))
+    detail = [(s.name, s.status, s.note) for s in result.stages]
+    assert stage(result, "duplicate_recognized").status == "passed", detail
+    assert result.verdict == "passed", detail
+    assert verify_bundle(bundle_dir) == []

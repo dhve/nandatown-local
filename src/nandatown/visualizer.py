@@ -26,6 +26,7 @@ TEMPLATE = """<!DOCTYPE html>
   h1 { font-size: 16px; margin-bottom: 4px; }
   .meta { color: var(--dim); margin-bottom: 12px; }
   .grid { display: grid; grid-template-columns: 1fr 380px; gap: 12px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
   .panel { background: var(--panel); border: 1px solid var(--line);
            border-radius: 8px; padding: 12px; }
   svg { width: 100%; height: 420px; display: block; }

@@ -220,7 +220,10 @@ def build_app(db_path: str, admin_token: str) -> FastAPI:
                 status_code=409,
                 detail={"error": "stale_fence", "message_id": body.message_id},
             )
-        if body.status == "processed" and state["fault"] == "duplicate_delivery":
+        if (body.status == "processed"
+                and state["fault"] == "duplicate_delivery"
+                and db.message_kind(run_id, body.message_id)
+                == FAULT_TARGET_KIND):
             state.setdefault("done_target", body.message_id)
         return {"recorded": True}
 
