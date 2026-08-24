@@ -1,0 +1,20 @@
+name: voting
+description: Signed ballots, one agent one vote, a double voter rejected on the second ballot, and the tally broadcast to every voter.
+seed: 42
+agents:
+  - name: ballot-box
+    role: ballot_box
+    config: {choices: [apricot, plum], close_after: 3.0}
+  - name: voter-1
+    role: voter
+    config: {choice: apricot}
+  - name: voter-2
+    role: voter
+    config: {choice: plum}
+  - name: voter-3
+    role: voter
+    config: {choice: apricot}
+  - name: voter-double
+    role: voter
+    config: {choice: plum, double_vote: true}
+max_time: 60

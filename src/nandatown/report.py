@@ -31,6 +31,32 @@ STAGE_MEANING = {
     "wakeup_loss_tolerated": "a lost wake-up hint did not lose inbox work",
     "ack_retry_survived": "a lost acknowledgement was retried and recorded",
     "portable_identity": "not exercised in this run",
+    "discovery": "cards published and peers found through the index",
+    "negotiation": "offers alternated to an agreed price inside bounds",
+    "settlement": "money moved only through recorded escrow",
+    "reputation": "receipts drove the public score",
+    "memory_reuse": "a remembered counterparty replaced a fresh lookup",
+    "announced": "the task was announced with its award rule",
+    "bidding": "on-time bids counted, late bids rejected",
+    "award": "the award followed the declared rule",
+    "delivery": "the item reached the winner",
+    "ballots": "every voter's first ballot counted",
+    "one_agent_one_vote": "a second ballot from the same voter was rejected",
+    "tally": "the count matches the ballots",
+    "result_broadcast": "every voter received the result",
+    "quorum_commit": "commit only after a quorum of acknowledgements",
+    "agreement": "every honest agent committed the same value",
+    "fault_recovered": "the dropped message was retried and recovered",
+    "procurement": "every component went to the lowest bid",
+    "milestones": "each part was paid through its own escrow",
+    "assembly_order": "parts before assembly, assembly before delivery",
+    "customer_settled": "the customer paid exactly once",
+    "spoof_detected": "the forged card was recorded as unverified",
+    "honest_verified": "the honest card verified",
+    "containment": "the spoofer got no traffic and no money",
+    "honest_trade_completed": "the real trade still went through",
+    "ledger_conserved": "money was conserved across every movement",
+    "privacy": "declared private fields never left the run",
 }
 
 SCOPE_SENTENCE = ("This result applies only to the named agents, releases,"
@@ -41,22 +67,34 @@ def render_report(bundle: dict[str, Any]) -> str:
     profile = bundle["profile"]
     run = bundle["run"]
     result = bundle["result"]
-    task = profile.task
 
     lines: list[str] = []
     add = lines.append
     add("NANDA Town System Fitness Report")
     add("=" * 40)
     add(f"Run:       {run.run_id}")
-    add(f"Profile:   {profile.name} (fault: {profile.fault})")
-    add(f"Task:      quote {task.quantity} x {task.sku} at"
-        f" {task.unit_price_cents} cents, expecting"
-        f" {task.expected_total_cents} cents")
+    if bundle.get("mode") == "lab":
+        faults = ", ".join(f"{f.action} {f.kind}" for f in profile.faults) \
+            or "none"
+        add(f"Scenario:  {profile.name} (seed {run.config.get('seed')})")
+        add(f"Faults:    {faults}")
+        add(f"Agents:    " + ", ".join(
+            f"{p['name']} ({p['role']})" for p in run.participants))
+    else:
+        task = profile.task
+        add(f"Profile:   {profile.name} (fault: {profile.fault})")
+        add(f"Task:      quote {task.quantity} x {task.sku} at"
+            f" {task.unit_price_cents} cents, expecting"
+            f" {task.expected_total_cents} cents")
     add(f"Releases:  " + ", ".join(f"{k} {v}"
                                    for k, v in sorted(run.releases.items())))
-    created = time.strftime("%Y-%m-%d %H:%M:%S UTC",
-                            time.gmtime(run.created_at))
-    add(f"Started:   {created}")
+    if bundle.get("mode") == "lab":
+        add(f"Duration:  {run.config.get('logical_time', 0):.1f} logical"
+            " seconds, deterministic")
+    else:
+        created = time.strftime("%Y-%m-%d %H:%M:%S UTC",
+                                time.gmtime(run.created_at))
+        add(f"Started:   {created}")
     add(f"Verdict:   {result.verdict.upper()}")
     add("")
     add("The journey: bring, connect, attempt, disrupt, inspect, improve.")

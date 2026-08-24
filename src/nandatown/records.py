@@ -75,7 +75,7 @@ class Intent(BaseModel):
     run_id: str
     at: float
     actor: str
-    action: Literal["send", "claim", "ack"]
+    action: str
     payload: dict[str, Any]
 
 

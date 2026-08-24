@@ -1,0 +1,24 @@
+name: consensus
+description: Two acknowledgements are dropped so the proposer misses quorum, retries the missing acceptors, reaches quorum on the second round, and every acceptor commits the same value.
+seed: 42
+agents:
+  - name: proposer
+    role: proposer
+    config: {value: v42, retry_after: 1.5}
+  - name: acceptor-1
+    role: acceptor
+    config: {}
+  - name: acceptor-2
+    role: acceptor
+    config: {}
+  - name: acceptor-3
+    role: acceptor
+    config: {}
+faults:
+  - action: drop
+    kind: prepare_ack
+    nth: 1
+  - action: drop
+    kind: prepare_ack
+    nth: 2
+max_time: 60

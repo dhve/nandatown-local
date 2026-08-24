@@ -39,9 +39,9 @@ def _sha256_file(path: str) -> str:
     return "sha256:" + digest.hexdigest()
 
 
-def write_bundle(directory: str, profile: TestProfile, run: RunRecord,
+def write_bundle(directory: str, profile, run: RunRecord,
                  intents: list[dict[str, Any]], events: list[TownEvent],
-                 result: EvidenceResult) -> dict[str, Any]:
+                 result: EvidenceResult, mode: str = "track") -> dict[str, Any]:
     os.makedirs(directory, exist_ok=True)
 
     def write(name: str, text: str) -> None:
@@ -59,6 +59,7 @@ def write_bundle(directory: str, profile: TestProfile, run: RunRecord,
     files = {name: _sha256_file(os.path.join(directory, name))
              for name in RECORD_FILES}
     manifest = {
+        "mode": mode,
         "files": files,
         "bundle_fingerprint": fingerprint(files),
         "created_at": time.time(),
@@ -77,16 +78,24 @@ def load_bundle(directory: str) -> dict[str, Any]:
         with open(os.path.join(directory, name)) as f:
             return f.read()
 
+    manifest = json.loads(read("manifest.json"))
+    mode = manifest.get("mode", "track")
+    if mode == "lab":
+        from .sim.scenario import ScenarioSpec
+        profile: Any = ScenarioSpec.model_validate_json(read("profile.json"))
+    else:
+        profile = TestProfile.model_validate_json(read("profile.json"))
     return {
         "directory": directory,
-        "profile": TestProfile.model_validate_json(read("profile.json")),
+        "mode": mode,
+        "profile": profile,
         "run": RunRecord.model_validate_json(read("run.json")),
         "intents": [Intent.model_validate_json(line)
                     for line in read("intents.jsonl").splitlines() if line],
         "events": [TownEvent.model_validate_json(line)
                    for line in read("events.jsonl").splitlines() if line],
         "result": EvidenceResult.model_validate_json(read("result.json")),
-        "manifest": json.loads(read("manifest.json")),
+        "manifest": manifest,
     }
 
 
@@ -112,12 +121,19 @@ def verify_bundle(directory: str) -> list[str]:
 
     bundle = load_bundle(directory)
     recorded = bundle["result"]
-    if recorded.evaluator_version != EVALUATOR_VERSION:
+    if bundle["mode"] == "lab":
+        from .sim.validators import LAB_EVALUATOR_VERSION, evaluate_scenario
+        expected_version = LAB_EVALUATOR_VERSION
+        replay_fn = evaluate_scenario
+    else:
+        expected_version = EVALUATOR_VERSION
+        replay_fn = evaluate
+    if recorded.evaluator_version != expected_version:
         problems.append(
             f"evaluator version differs: bundle {recorded.evaluator_version},"
-            f" local {EVALUATOR_VERSION}; reproducibility not checked")
+            f" local {expected_version}; reproducibility not checked")
         return problems
-    replay = evaluate(bundle["profile"], recorded.run_id, bundle["events"])
+    replay = replay_fn(bundle["profile"], recorded.run_id, bundle["events"])
     recorded_stages = {s.name: s.status for s in recorded.stages}
     replay_stages = {s.name: s.status for s in replay.stages}
     if recorded_stages != replay_stages or recorded.verdict != replay.verdict:
