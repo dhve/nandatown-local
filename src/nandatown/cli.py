@@ -26,16 +26,43 @@ def cmd_run(args: argparse.Namespace) -> int:
     from .report import render_report
 
     name = args.name
+    harnesses = {}
+    for spec in args.agent:
+        role, _, connector = spec.partition("=")
+        if not connector:
+            print(f"--agent {spec!r} must look like role=harness,"
+                  " e.g. seller=cmd:'python my_agent.py'")
+            return 2
+        harnesses[role] = connector
+    layer_overrides = {}
+    for spec in args.layer:
+        layer, _, plugin_id = spec.partition("=")
+        if not plugin_id:
+            print(f"--layer {spec!r} must look like layer=plugin.id")
+            return 2
+        layer_overrides[layer] = plugin_id
     if name in PROFILES:
+        if args.plugin or layer_overrides:
+            print("--plugin and --layer apply to Lab scenarios; Track"
+                  " profiles run the fixed coordinator contract")
+            return 2
         from .runner import run_town
         print(f"nandatown {__version__}: Track run of {name}"
               " (real subprocess agents)")
-        bundle_dir, result = run_town(name, args.out, model=args.model)
+        bundle_dir, result = run_town(name, args.out, model=args.model,
+                                      harnesses=harnesses or None)
     elif _is_lab(name):
+        if harnesses:
+            print("--agent applies to Track profiles; Lab scenarios use"
+                  " the scripted reference agents")
+            return 2
         from .sim.runner import run_lab
         print(f"nandatown {__version__}: Lab run of {name}"
               " (deterministic, no model, no tokens)")
-        bundle_dir, result = run_lab(name, args.out, seed=args.seed)
+        bundle_dir, result = run_lab(name, args.out, seed=args.seed,
+                                     plugins=args.plugin or None,
+                                     layer_overrides=layer_overrides
+                                     or None)
     else:
         from .sim.scenario import bundled_scenarios
         print(f"unknown target {name!r}")
@@ -356,6 +383,19 @@ def main(argv: list[str] | None = None) -> int:
                        help="model for llm profiles: mock:v1 (default),"
                             " or a name served by an OpenAI-compatible"
                             " endpoint (TOWN_MODEL_URL, default Ollama)")
+    p_run.add_argument("--agent", action="append", default=[],
+                       metavar="ROLE=HARNESS",
+                       help="Track only: connect a harness per role:"
+                            " scripted, llm, llm:MODEL, cmd:COMMAND,"
+                            " or external")
+    p_run.add_argument("--plugin", action="append", default=[],
+                       metavar="FILE",
+                       help="Lab only: load a plugin/validator file"
+                            " before the run")
+    p_run.add_argument("--layer", action="append", default=[],
+                       metavar="LAYER=PLUGIN_ID",
+                       help="Lab only: swap one layer's plugin for this"
+                            " run")
     p_run.set_defaults(func=cmd_run)
 
     p_test = sub.add_parser(

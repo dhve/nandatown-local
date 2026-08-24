@@ -62,10 +62,21 @@ def resolve_spec(name_or_path: str) -> ScenarioSpec:
 
 
 def run_lab(name_or_path: str, out_dir: str,
-            seed: int | None = None) -> tuple[str, object]:
+            seed: int | None = None,
+            plugins: list[str] | None = None,
+            layer_overrides: dict[str, str] | None = None
+            ) -> tuple[str, object]:
     spec = resolve_spec(name_or_path)
     if seed is not None:
         spec.seed = seed
+    if plugins:
+        load_plugin_files([os.path.abspath(p) for p in plugins])
+        spec.plugin_files = list(spec.plugin_files) + list(plugins)
+    if layer_overrides:
+        for layer, plugin_id in layer_overrides.items():
+            if layer not in spec.layers:
+                raise LabError(f"unknown layer {layer!r}")
+            spec.layers[layer] = plugin_id
     engine = build_engine(spec)
     engine.run()
 

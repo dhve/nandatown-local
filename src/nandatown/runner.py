@@ -68,17 +68,62 @@ def _spawn_participant(command: list[str], url: str, run_id: str, name: str,
                             stderr=subprocess.DEVNULL)
 
 
+def parse_harness(spec: str) -> dict[str, Any]:
+    """A harness connector spec, the way an agent plugs into a run.
+
+    scripted        the stock reference agent for the role
+    llm             the model tool loop with the run's default model
+    llm:MODEL       the model tool loop with this model
+    cmd:COMMAND     your own agent process, any runtime, any language
+    external        spawn nothing; hand out join credentials instead
+    """
+    import shlex
+
+    if spec == "scripted":
+        return {"kind": "scripted"}
+    if spec == "llm":
+        return {"kind": "llm", "model": None}
+    if spec.startswith("llm:"):
+        return {"kind": "llm", "model": spec[4:]}
+    if spec.startswith("cmd:"):
+        command = shlex.split(spec[4:])
+        if not command:
+            raise RunnerError("cmd: harness needs a command")
+        return {"kind": "cmd", "command": command}
+    if spec == "external":
+        return {"kind": "external"}
+    raise RunnerError(
+        f"unknown harness {spec!r}; use scripted, llm, llm:MODEL,"
+        " cmd:COMMAND, or external")
+
+
 def _participant_command(profile: TestProfile, role: str,
-                         external: dict[str, list[str]] | None
-                         ) -> tuple[list[str], dict[str, str]]:
-    """The command and extra env for one role's participant process."""
-    if external and role in external:
-        return list(external[role]), {}
-    runtime = profile.runtimes.get(role, "scripted")
-    if runtime == "llm":
-        return ([sys.executable, "-m", "nandatown.participants.llm"],
-                {"ROLE": role})
-    return ([sys.executable, "-m", f"nandatown.participants.{role}"], {})
+                         external: dict[str, list[str] | None] | None,
+                         harnesses: dict[str, str] | None = None
+                         ) -> tuple[list[str] | None, dict[str, str]]:
+    """The command and extra env for one role, or (None, {}) when an
+    outside agent will join with handed-out credentials."""
+    if harnesses and role in harnesses:
+        harness = parse_harness(harnesses[role])
+    elif external and role in external:
+        command = external[role]
+        harness = ({"kind": "external"} if command is None
+                   else {"kind": "cmd", "command": list(command)})
+    else:
+        runtime = profile.runtimes.get(role, "scripted")
+        harness = {"kind": runtime if runtime == "llm" else "scripted",
+                   "model": None}
+    kind = harness["kind"]
+    if kind == "external":
+        return None, {}
+    if kind == "cmd":
+        return harness["command"], {}
+    if kind == "llm":
+        env = {"ROLE": role}
+        if harness.get("model"):
+            env["TOWN_MODEL"] = harness["model"]
+        return [sys.executable, "-m", "nandatown.participants.llm"], env
+    return [sys.executable, "-m", f"nandatown.participants.{role}"], {}
 
 
 def _quiescent(profile: TestProfile, events: list[dict[str, Any]]) -> bool:
@@ -98,13 +143,16 @@ def _quiescent(profile: TestProfile, events: list[dict[str, Any]]) -> bool:
 def run_town(profile_name: str, out_dir: str, port: int = 0,
              model: str | None = None,
              external: dict[str, list[str] | None] | None = None,
+             harnesses: dict[str, str] | None = None,
              wait_timeout: float = 45.0,
              on_credentials=None) -> tuple[str, Any]:
     """Run one Track profile.
 
-    external maps a role to a replacement command, or to None to spawn
-    nothing for that role and instead hand its join credentials to
-    on_credentials(role, env) so an outside agent can join.
+    harnesses maps a role to a connector spec (see parse_harness) and
+    overrides the profile's runtimes. external is the lower-level form:
+    a role mapped to a replacement command, or to None to spawn nothing
+    and hand join credentials to on_credentials(role, env) so an
+    outside agent can join.
     """
     if profile_name not in PROFILES:
         raise RunnerError(f"unknown profile {profile_name!r};"
@@ -151,15 +199,16 @@ def run_town(profile_name: str, out_dir: str, port: int = 0,
         seller_state = os.path.join(scratch, "seller")
         buyer_state = os.path.join(scratch, "buyer")
         seller_cmd, seller_env = _participant_command(profile, "seller",
-                                                      external)
+                                                      external, harnesses)
         buyer_cmd, buyer_env = _participant_command(profile, "buyer",
-                                                    external)
+                                                    external, harnesses)
         model_env = {"TOWN_MODEL": model}
         for key in ("TOWN_MODEL_URL", "TOWN_MODEL_KEY"):
             if key in os.environ:
                 model_env[key] = os.environ[key]
-        seller_env.update(model_env)
-        buyer_env.update(model_env)
+        # A per-role harness model outranks the run-level model.
+        seller_env = {**model_env, **seller_env}
+        buyer_env = {**model_env, **buyer_env}
 
         seller_deadline = str(wait_timeout - 5)
         buyer_deadline = str(wait_timeout - 15)
@@ -172,8 +221,7 @@ def run_town(profile_name: str, out_dir: str, port: int = 0,
                                       "STATE_DIR": state_dir})
 
         def spawn_seller() -> subprocess.Popen | None:
-            if external and "seller" in external and \
-                    external["seller"] is None:
+            if seller_cmd is None:
                 hand_off("seller", seller_state)
                 return None
             p = _spawn_participant(seller_cmd, url, run_id, "seller",
@@ -184,7 +232,7 @@ def run_town(profile_name: str, out_dir: str, port: int = 0,
             return p
 
         seller = spawn_seller()
-        if external and "buyer" in external and external["buyer"] is None:
+        if buyer_cmd is None:
             hand_off("buyer", buyer_state)
             buyer = None
         else:
@@ -253,13 +301,17 @@ def run_town(profile_name: str, out_dir: str, port: int = 0,
              "content_fingerprint": fingerprint(skill_source(name))}
             for name in ("town-protocol", "quote.read", "quote.request")
         ]
-        uses_llm = "llm" in profile.runtimes.values()
+        uses_llm = ("llm" in profile.runtimes.values()
+                    or any(spec.startswith("llm")
+                           for spec in (harnesses or {}).values()))
         config: dict[str, Any] = {"port": port,
                                   "restarted_seller": restarted,
                                   "runtimes": profile.runtimes or
                                   {"buyer": "scripted",
                                    "seller": "scripted"},
                                   "skill_releases": skill_releases}
+        if harnesses:
+            config["harnesses"] = harnesses
         if uses_llm:
             config["model"] = model
             if not model.startswith("mock:"):
