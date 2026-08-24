@@ -1,0 +1,17 @@
+name: capability_spoofing_weak_auth
+description: The same spoofing scenario with the auth layer swapped for plain.v1 (no signatures); the forged card verifies, the buyer contacts the spoofer, and the run fails on purpose. Swap a layer, watch the town break.
+seed: 42
+validator: capability_spoofing
+layers:
+  auth: plain.v1
+agents:
+  - name: seller-honest
+    role: seller
+    config: {sku: widget, ask_cents: 1995, floor_cents: 1700, stock: 10, balance_cents: 0}
+  - name: spoofer
+    role: spoofer
+    config: {claimed_capability: sell.widget, forge_key_of: shadow, balance_cents: 0}
+  - name: buyer-1
+    role: buyer
+    config: {sku: widget, quantity: 2, cap_cents: 1900, balance_cents: 10000, rounds: 1}
+max_time: 60

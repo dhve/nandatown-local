@@ -10,6 +10,25 @@ from . import register
 from ..records import canonical_json
 
 
+@register("auth", "plain.v1")
+class PlainAuth:
+    """Trusts any claimed sender: no signatures, no verification.
+
+    Exists to show what the auth layer is for. Swap it into
+    capability_spoofing and watch the town fail its own report.
+    """
+
+    def __init__(self, engine):
+        self.engine = engine
+
+    def sign_as(self, name: str, payload: Any) -> str:
+        return "unsigned"
+
+    def verify(self, claimed_name: str, payload: Any, signature: str,
+               subject: str = "") -> bool:
+        return True
+
+
 @register("auth", "hmac.v1")
 class HmacAuth:
     """Signs payloads with the sender's identity key; forged senders fail."""

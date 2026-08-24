@@ -12,6 +12,7 @@ from nandatown.sim.scenario import (
 
 ALL_SCENARIOS = ["marketplace", "auction", "voting", "consensus",
                  "supply_chain", "capability_spoofing"]
+FAILING_SCENARIOS = ["capability_spoofing_weak_auth"]
 
 
 def trace_of(spec):
@@ -27,7 +28,25 @@ def trace_of(spec):
 
 
 def test_bundled_scenarios_all_present():
-    assert set(bundled_scenarios()) == set(ALL_SCENARIOS)
+    assert set(bundled_scenarios()) == set(ALL_SCENARIOS + FAILING_SCENARIOS)
+
+
+def test_weak_auth_swap_breaks_the_town(tmp_path):
+    """Swap auth for plain.v1 and the spoofing scenario must fail: the
+    forged card verifies, the buyer contacts the spoofer, and the report
+    says so. The failing report is the demonstration."""
+    bundle_dir, result = run_lab("capability_spoofing_weak_auth",
+                                 str(tmp_path))
+    stages = {s.name: s.status for s in result.stages}
+    assert result.verdict == "failed", stages
+    assert stages["containment"] == "failed"
+    assert stages["spoof_detected"] == "not_enough_evidence"
+    assert verify_bundle(bundle_dir) == []
+    bundle = load_bundle(bundle_dir)
+    to_spoofer = [e for e in bundle["events"]
+                  if e.kind == "message_sent"
+                  and e.detail.get("to") == "spoofer"]
+    assert to_spoofer, "with plain auth the buyer should reach the spoofer"
 
 
 def test_determinism_same_seed_same_trace():
