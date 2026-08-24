@@ -189,6 +189,19 @@ def evaluate(profile: TestProfile, run_id: str,
             stages.append(_missing("ack_retry_survived",
                                    "no dropped acknowledgement followed by"
                                    " a recorded retry"))
+    elif fault == "context_truncation":
+        truncated = [e for e in events if e.kind == "ack_recorded"
+                     and e.detail.get("note", {})
+                     .get("context_truncations", 0) >= 1]
+        if truncated and processed:
+            stages.append(_passed(
+                "truncation_survived",
+                [e.event_id for e in truncated[:4]],
+                "the agents reported losing context and still completed"))
+        else:
+            stages.append(_missing(
+                "truncation_survived",
+                "no participant reported a context truncation"))
 
     stages.append(StageResult(
         name="portable_identity", status="not_tested",

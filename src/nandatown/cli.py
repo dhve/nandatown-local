@@ -30,7 +30,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         from .runner import run_town
         print(f"nandatown {__version__}: Track run of {name}"
               " (real subprocess agents)")
-        bundle_dir, result = run_town(name, args.out)
+        bundle_dir, result = run_town(name, args.out, model=args.model)
     elif _is_lab(name):
         from .sim.runner import run_lab
         print(f"nandatown {__version__}: Lab run of {name}"
@@ -43,6 +43,45 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"track profiles: {', '.join(sorted(PROFILES))}")
         return 2
     print(render_report(load_bundle(bundle_dir)))
+    print(f"Evidence bundle: {bundle_dir}")
+    return 0 if result.verdict == "passed" else 1
+
+
+def cmd_test_agent(args: argparse.Namespace) -> int:
+    import shlex
+
+    from .bundle import load_bundle
+    from .report import render_report
+    from .runner import run_town
+
+    if not args.cmd and not args.wait:
+        print("give your agent with --cmd \"...\" or use --wait to join"
+              " it manually")
+        return 2
+    if args.cmd:
+        external = {args.role: shlex.split(args.cmd)}
+        creds_cb = None
+    else:
+        external = {args.role: None}
+
+        def creds_cb(role, env):
+            print(f"waiting for your {role}. Start it with this"
+                  " environment:")
+            for k, v in env.items():
+                print(f"  export {k}={v}")
+            print("then join, claim, work, acknowledge. The town is"
+                  " watching.")
+
+    print(f"nandatown {__version__}: testing your {args.role} against"
+          f" profile {args.profile}")
+    bundle_dir, result = run_town(args.profile, args.out,
+                                  external=external,
+                                  wait_timeout=args.timeout,
+                                  on_credentials=creds_cb)
+    print(render_report(load_bundle(bundle_dir)))
+    applicable = [s for s in result.stages if s.status != "not_tested"]
+    passed = sum(1 for s in applicable if s.status == "passed")
+    print(f"{passed} of {len(applicable)} town stages passed.")
     print(f"Evidence bundle: {bundle_dir}")
     return 0 if result.verdict == "passed" else 1
 
@@ -213,7 +252,29 @@ def main(argv: list[str] | None = None) -> int:
                        help="override the Lab scenario seed")
     p_run.add_argument("--out", default="runs",
                        help="directory for evidence bundles")
+    p_run.add_argument("--model", default=None,
+                       help="model for llm profiles: mock:v1 (default),"
+                            " or a name served by an OpenAI-compatible"
+                            " endpoint (TOWN_MODEL_URL, default Ollama)")
     p_run.set_defaults(func=cmd_run)
+
+    p_test = sub.add_parser(
+        "test-agent",
+        help="test YOUR agent against the town: it plays one role, the"
+             " town supplies the counterpart and the report")
+    p_test.add_argument("--role", choices=["seller", "buyer"],
+                        default="seller")
+    p_test.add_argument("--profile", default="quote-clean")
+    p_test.add_argument("--cmd", default=None,
+                        help="command that starts your agent (it receives"
+                             " TOWN_URL, RUN_ID, NAME, TOKEN, STATE_DIR"
+                             " in its environment)")
+    p_test.add_argument("--wait", action="store_true",
+                        help="print join credentials and wait for your"
+                             " agent to connect from outside")
+    p_test.add_argument("--timeout", type=float, default=60.0)
+    p_test.add_argument("--out", default="runs")
+    p_test.set_defaults(func=cmd_test_agent)
 
     sub.add_parser("scenarios",
                    help="list Lab scenarios").set_defaults(func=cmd_scenarios)

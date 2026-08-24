@@ -38,7 +38,8 @@ class QuoteTask(BaseModel):
 
 
 Fault = Literal[
-    "none", "drop_wakeup", "duplicate_delivery", "lost_ack", "crash_after_claim"
+    "none", "drop_wakeup", "duplicate_delivery", "lost_ack",
+    "crash_after_claim", "context_truncation"
 ]
 
 
@@ -54,6 +55,7 @@ class TestProfile(BaseModel):
     fault: Fault
     lease_seconds: float
     evaluator: str
+    runtimes: dict[str, str] = {}
 
 
 class RunRecord(BaseModel):

@@ -52,17 +52,33 @@ def _wait_health(http: httpx.Client, timeout: float = 10.0) -> None:
     raise RunnerError("coordinator did not become healthy")
 
 
-def _spawn_participant(module: str, url: str, run_id: str, name: str,
+def _spawn_participant(command: list[str], url: str, run_id: str, name: str,
                        token: str, state_dir: str, fault: str,
-                       deadline: str) -> subprocess.Popen:
+                       deadline: str,
+                       extra_env: dict[str, str] | None = None
+                       ) -> subprocess.Popen:
     os.makedirs(state_dir, exist_ok=True)
     env = dict(os.environ)
     env.update({"TOWN_URL": url, "RUN_ID": run_id, "NAME": name,
                 "TOKEN": token, "STATE_DIR": state_dir, "FAULT": fault,
                 "DEADLINE": deadline})
-    return subprocess.Popen([sys.executable, "-m", module], env=env,
+    env.update(extra_env or {})
+    return subprocess.Popen(command, env=env,
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL)
+
+
+def _participant_command(profile: TestProfile, role: str,
+                         external: dict[str, list[str]] | None
+                         ) -> tuple[list[str], dict[str, str]]:
+    """The command and extra env for one role's participant process."""
+    if external and role in external:
+        return list(external[role]), {}
+    runtime = profile.runtimes.get(role, "scripted")
+    if runtime == "llm":
+        return ([sys.executable, "-m", "nandatown.participants.llm"],
+                {"ROLE": role})
+    return ([sys.executable, "-m", f"nandatown.participants.{role}"], {})
 
 
 def _quiescent(profile: TestProfile, events: list[dict[str, Any]]) -> bool:
@@ -79,12 +95,22 @@ def _quiescent(profile: TestProfile, events: list[dict[str, Any]]) -> bool:
     return bool(applied)
 
 
-def run_town(profile_name: str, out_dir: str,
-             port: int = 0) -> tuple[str, Any]:
+def run_town(profile_name: str, out_dir: str, port: int = 0,
+             model: str | None = None,
+             external: dict[str, list[str] | None] | None = None,
+             wait_timeout: float = 45.0,
+             on_credentials=None) -> tuple[str, Any]:
+    """Run one Track profile.
+
+    external maps a role to a replacement command, or to None to spawn
+    nothing for that role and instead hand its join credentials to
+    on_credentials(role, env) so an outside agent can join.
+    """
     if profile_name not in PROFILES:
         raise RunnerError(f"unknown profile {profile_name!r};"
                           f" choose from {sorted(PROFILES)}")
     profile = PROFILES[profile_name]
+    model = model or os.environ.get("TOWN_MODEL", "mock:v1")
     admin_token = secrets.token_hex(16)
     port = port or _free_port()
     url = f"http://127.0.0.1:{port}"
@@ -122,46 +148,79 @@ def run_town(profile_name: str, out_dir: str,
         def get_events() -> list[dict[str, Any]]:
             return admin.get(f"/runs/{run_id}/events").json()["events"]
 
-        seller_fault = ("crash_after_claim"
-                        if profile.fault == "crash_after_claim" else "none")
         seller_state = os.path.join(scratch, "seller")
         buyer_state = os.path.join(scratch, "buyer")
+        seller_cmd, seller_env = _participant_command(profile, "seller",
+                                                      external)
+        buyer_cmd, buyer_env = _participant_command(profile, "buyer",
+                                                    external)
+        model_env = {"TOWN_MODEL": model}
+        for key in ("TOWN_MODEL_URL", "TOWN_MODEL_KEY"):
+            if key in os.environ:
+                model_env[key] = os.environ[key]
+        seller_env.update(model_env)
+        buyer_env.update(model_env)
 
-        def spawn_seller() -> subprocess.Popen:
-            p = _spawn_participant("nandatown.participants.seller", url,
-                                   run_id, "seller", tokens["seller"],
-                                   seller_state, seller_fault, "40")
+        seller_deadline = str(wait_timeout - 5)
+        buyer_deadline = str(wait_timeout - 15)
+
+        def hand_off(role: str, state_dir: str) -> None:
+            if on_credentials is not None:
+                on_credentials(role, {"TOWN_URL": url, "RUN_ID": run_id,
+                                      "NAME": role,
+                                      "TOKEN": tokens[role],
+                                      "STATE_DIR": state_dir})
+
+        def spawn_seller() -> subprocess.Popen | None:
+            if external and "seller" in external and \
+                    external["seller"] is None:
+                hand_off("seller", seller_state)
+                return None
+            p = _spawn_participant(seller_cmd, url, run_id, "seller",
+                                   tokens["seller"], seller_state,
+                                   profile.fault, seller_deadline,
+                                   extra_env=seller_env)
             procs.append(p)
             return p
 
         seller = spawn_seller()
-        buyer = _spawn_participant("nandatown.participants.buyer", url,
-                                   run_id, "buyer", tokens["buyer"],
-                                   buyer_state, "none", "30")
-        procs.append(buyer)
+        if external and "buyer" in external and external["buyer"] is None:
+            hand_off("buyer", buyer_state)
+            buyer = None
+        else:
+            buyer = _spawn_participant(buyer_cmd, url, run_id, "buyer",
+                                       tokens["buyer"], buyer_state,
+                                       profile.fault, buyer_deadline,
+                                       extra_env=buyer_env)
+            procs.append(buyer)
 
         restarted = False
-        deadline = time.time() + 45.0
+        deadline = time.time() + wait_timeout
         while time.time() < deadline:
-            if buyer.poll() is not None:
+            if buyer is not None and buyer.poll() is not None:
                 break
-            rc = seller.poll()
-            if rc is not None:
-                if rc == SELLER_CRASH_EXIT and not restarted:
-                    post_event("runner", "participant_crashed", "seller",
-                               {"exit_code": rc})
-                    seller = spawn_seller()
-                    post_event("runner", "participant_restarted", "seller")
-                    restarted = True
-                else:
-                    post_event("runner", "participant_exited", "seller",
-                               {"exit_code": rc})
-                    break
+            if buyer is None and _quiescent(profile, get_events()):
+                break
+            if seller is not None:
+                rc = seller.poll()
+                if rc is not None:
+                    if rc == SELLER_CRASH_EXIT and not restarted:
+                        post_event("runner", "participant_crashed",
+                                   "seller", {"exit_code": rc})
+                        seller = spawn_seller()
+                        post_event("runner", "participant_restarted",
+                                   "seller")
+                        restarted = True
+                    else:
+                        post_event("runner", "participant_exited",
+                                   "seller", {"exit_code": rc})
+                        break
             time.sleep(0.1)
-        if buyer.poll() is None:
-            buyer.terminate()
-        post_event("runner", "participant_exited", "buyer",
-                   {"exit_code": buyer.poll()})
+        if buyer is not None:
+            if buyer.poll() is None:
+                buyer.terminate()
+            post_event("runner", "participant_exited", "buyer",
+                       {"exit_code": buyer.poll()})
 
         quiet_deadline = time.time() + 8.0
         while time.time() < quiet_deadline:
@@ -169,7 +228,7 @@ def run_town(profile_name: str, out_dir: str,
                 break
             time.sleep(0.2)
 
-        if seller.poll() is None:
+        if seller is not None and seller.poll() is None:
             seller.terminate()
         admin.post(f"/runs/{run_id}/finish")
 
@@ -188,6 +247,26 @@ def run_town(profile_name: str, out_dir: str,
         ]
         created_at = next((e.at for e in events if e.kind == "run_created"),
                           time.time())
+        from .skills import skill_source
+        skill_releases = [
+            {"kind": "skill", "name": name, "version": "1",
+             "content_fingerprint": fingerprint(skill_source(name))}
+            for name in ("town-protocol", "quote.read", "quote.request")
+        ]
+        uses_llm = "llm" in profile.runtimes.values()
+        config: dict[str, Any] = {"port": port,
+                                  "restarted_seller": restarted,
+                                  "runtimes": profile.runtimes or
+                                  {"buyer": "scripted",
+                                   "seller": "scripted"},
+                                  "skill_releases": skill_releases}
+        if uses_llm:
+            config["model"] = model
+            if not model.startswith("mock:"):
+                config["model_note"] = ("hosted model recorded as an"
+                                        " observed mutable dependency;"
+                                        " it can change under a pinned"
+                                        " release")
         run_record = RunRecord(
             run_id=run_id,
             profile_name=profile.name,
@@ -199,7 +278,7 @@ def run_town(profile_name: str, out_dir: str,
                 "evaluator": EVALUATOR_VERSION,
                 "python": sys.version.split()[0],
             },
-            config={"port": port, "restarted_seller": restarted},
+            config=config,
         )
         result = evaluate(profile, run_id, events)
         bundle_dir = os.path.join(out_dir, run_id)

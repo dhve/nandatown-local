@@ -20,12 +20,16 @@ _ROLES = {"buyer": "buyer", "seller": "seller"}
 _CAPABILITIES = {"buyer": [], "seller": ["quote.read"]}
 
 
-def _profile(name: str, fault: str, lease_seconds: float) -> TestProfile:
+def _profile(name: str, fault: str, lease_seconds: float,
+             runtimes: dict[str, str] | None = None) -> TestProfile:
     return TestProfile(name=name, task=_TASK, roles=_ROLES,
                        capabilities=_CAPABILITIES, fault=fault,
                        lease_seconds=lease_seconds,
-                       evaluator="stage-evaluator")
+                       evaluator="stage-evaluator",
+                       runtimes=runtimes or {})
 
+
+_LLM = {"buyer": "llm", "seller": "llm"}
 
 PROFILES: dict[str, TestProfile] = {
     "quote-clean": _profile("quote-clean", "none", 5.0),
@@ -35,6 +39,9 @@ PROFILES: dict[str, TestProfile] = {
     "quote-duplicate-delivery": _profile("quote-duplicate-delivery",
                                          "duplicate_delivery", 5.0),
     "quote-lost-ack": _profile("quote-lost-ack", "lost_ack", 5.0),
+    "quote-llm": _profile("quote-llm", "none", 5.0, _LLM),
+    "quote-llm-truncation": _profile("quote-llm-truncation",
+                                     "context_truncation", 5.0, _LLM),
 }
 
 DEFAULT_PROFILE = "quote-crash-restart"
@@ -49,4 +56,9 @@ FAULT_DESCRIPTIONS = {
                                 " must apply it once",
     "quote-lost-ack": "the first acknowledgement is lost; the retry must be"
                       " safe",
+    "quote-llm": "tier two: both participants run the model tool loop"
+                 " (mock brain by default, --model for real inference)",
+    "quote-llm-truncation": "tier two plus the first agent-native fault:"
+                            " context truncated mid-run, the protocol must"
+                            " carry the recovery",
 }
