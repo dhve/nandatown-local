@@ -487,6 +487,68 @@ def cmd_schemas(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_mcp(args: argparse.Namespace) -> int:
+    import json
+    import shlex
+
+    from .mcp_adapter import MCPTownServer, probe
+
+    if args.action == "serve":
+        if not (args.url and args.run and args.name):
+            print("serve needs --url, --run, and --name (plus --token"
+                  " or --grant-file)")
+            return 2
+        grant_json = None
+        if args.grant_file:
+            with open(args.grant_file) as f:
+                grant_json = f.read()
+        MCPTownServer(args.url, args.run, args.name, args.token,
+                      grant_json).serve()
+        return 0
+    if args.action == "test":
+        if not args.cmd:
+            print("test needs --cmd \"command that starts the MCP"
+                  " server\"")
+            return 2
+        report = probe(shlex.split(args.cmd))
+        print(json.dumps(report, indent=2))
+        if report["ok"]:
+            print("MCP handshake passed: initialize, capabilities,"
+                  " tools listed with schemas")
+            return 0
+        return 1
+    print("actions: serve, test")
+    return 2
+
+
+def cmd_a2a(args: argparse.Namespace) -> int:
+    import json
+
+    if args.action == "serve":
+        from .a2a_adapter import main as a2a_main
+        import sys as _sys
+
+        _sys.argv = ["nandatown-a2a", "--host", args.host,
+                     "--port", str(args.port)]
+        a2a_main()
+        return 0
+    if args.action == "test":
+        if not args.url:
+            print("test needs a URL: nandatown a2a test <url>")
+            return 2
+        from .a2a_adapter import probe_endpoint
+
+        report = probe_endpoint(args.url)
+        print(json.dumps(report, indent=2))
+        if report["ok"]:
+            print("A2A edge passed: agent card valid, message/send"
+                  " round trip completed")
+            return 0
+        return 1
+    print("actions: serve, test")
+    return 2
+
+
 def cmd_coordinator(args: argparse.Namespace) -> int:
     import os
     import secrets
@@ -750,6 +812,27 @@ def main(argv: list[str] | None = None) -> int:
                                                " Schemas")
     p_schemas.add_argument("--out", default="schemas")
     p_schemas.set_defaults(func=cmd_schemas)
+
+    p_mcp = sub.add_parser(
+        "mcp", help="the MCP adapter: serve a town role to any MCP"
+                    " host, or probe an external MCP server")
+    p_mcp.add_argument("action", choices=["serve", "test"])
+    p_mcp.add_argument("--url", default=None)
+    p_mcp.add_argument("--run", default=None)
+    p_mcp.add_argument("--name", default=None)
+    p_mcp.add_argument("--token", default="")
+    p_mcp.add_argument("--grant-file", default=None)
+    p_mcp.add_argument("--cmd", default=None)
+    p_mcp.set_defaults(func=cmd_mcp)
+
+    p_a2a = sub.add_parser(
+        "a2a", help="the A2A edge: serve the reference seller as an"
+                    " Agent2Agent agent, or test an A2A endpoint")
+    p_a2a.add_argument("action", choices=["serve", "test"])
+    p_a2a.add_argument("url", nargs="?", default=None)
+    p_a2a.add_argument("--host", default="127.0.0.1")
+    p_a2a.add_argument("--port", type=int, default=8940)
+    p_a2a.set_defaults(func=cmd_a2a)
 
     p_coord = sub.add_parser("coordinator",
                              help="run a standalone coordinator for your"

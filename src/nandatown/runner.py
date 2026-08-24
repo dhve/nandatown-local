@@ -92,9 +92,14 @@ def parse_harness(spec: str) -> dict[str, Any]:
         return {"kind": "cmd", "command": command}
     if spec == "external":
         return {"kind": "external"}
+    if spec.startswith("a2a:"):
+        url = spec[4:]
+        if not url:
+            raise RunnerError("a2a: harness needs a URL")
+        return {"kind": "a2a", "url": url}
     raise RunnerError(
         f"unknown harness {spec!r}; use scripted, llm, llm:MODEL,"
-        " cmd:COMMAND, or external")
+        " cmd:COMMAND, a2a:URL, or external")
 
 
 def _participant_command(profile: TestProfile, role: str,
@@ -123,6 +128,10 @@ def _participant_command(profile: TestProfile, role: str,
         if harness.get("model"):
             env["TOWN_MODEL"] = harness["model"]
         return [sys.executable, "-m", "nandatown.participants.llm"], env
+    if kind == "a2a":
+        return ([sys.executable, "-m",
+                 "nandatown.participants.a2a_bridge"],
+                {"A2A_URL": harness["url"]})
     return [sys.executable, "-m", f"nandatown.participants.{role}"], {}
 
 
