@@ -49,8 +49,13 @@ def cmd_run(args: argparse.Namespace) -> int:
         from .runner import run_town
         print(f"nandatown {__version__}: Track run of {name}"
               " (real subprocess agents)")
+        identity_dir = None
+        if args.identity:
+            from .identity_portable import default_keystore_dir
+            identity_dir = args.identity_dir or default_keystore_dir()
         bundle_dir, result = run_town(name, args.out, model=args.model,
-                                      harnesses=harnesses or None)
+                                      harnesses=harnesses or None,
+                                      identity_dir=identity_dir)
     elif _is_lab(name):
         if harnesses:
             print("--agent applies to Track profiles; Lab scenarios use"
@@ -373,6 +378,41 @@ def cmd_visualize(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_identity(args: argparse.Namespace) -> int:
+    import json
+
+    from .identity_portable import Keystore, default_keystore_dir
+
+    keystore = Keystore(args.dir or default_keystore_dir())
+    if args.action == "new":
+        identity = keystore.new_identity(args.name or "agent")
+        print(json.dumps(identity, indent=2))
+        print("controller key stored in the keystore; it never enters a"
+              " participant environment")
+        return 0
+    if args.action == "list":
+        identities = keystore.identities()
+        if not identities:
+            print(f"no identities in {keystore.directory}; create one"
+                  " with: nandatown identity new <name>")
+            return 0
+        for identity in identities:
+            print(f"{identity['name']:<16} {identity['agent_id']}"
+                  f"  controller {identity['controller_public'][:16]}")
+        return 0
+    if args.action == "grant":
+        if not args.name or not args.run:
+            print("grant needs a name and --run <run_id>")
+            return 2
+        grant = keystore.make_grant(args.name, args.run)
+        print(json.dumps(grant, indent=2))
+        print("hand this to the agent's environment as TOWN_GRANT; the"
+              " session key inside is disposable and run-scoped")
+        return 0
+    print("actions: new, list, grant")
+    return 2
+
+
 def cmd_new(args: argparse.Namespace) -> int:
     from .new import HINTS, ScaffoldError, scaffold
 
@@ -485,7 +525,21 @@ def main(argv: list[str] | None = None) -> int:
                        metavar="LAYER=PLUGIN_ID",
                        help="Lab only: swap one layer's plugin for this"
                             " run")
+    p_run.add_argument("--identity", action="store_true",
+                       help="Track only: join through portable identity"
+                            " run grants instead of join tokens")
+    p_run.add_argument("--identity-dir", default=None)
     p_run.set_defaults(func=cmd_run)
+
+    p_identity = sub.add_parser(
+        "identity", help="portable identities: controller keys, the"
+                         " town registry, run grants")
+    p_identity.add_argument("action",
+                            choices=["new", "list", "grant"])
+    p_identity.add_argument("name", nargs="?", default=None)
+    p_identity.add_argument("--run", default=None)
+    p_identity.add_argument("--dir", default=None)
+    p_identity.set_defaults(func=cmd_identity)
 
     p_test = sub.add_parser(
         "test-agent",

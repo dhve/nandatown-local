@@ -173,6 +173,13 @@ class TownDB:
             )
             return session
 
+    def join_token(self, run_id: str, name: str) -> str | None:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT join_token FROM participants WHERE run_id=?"
+                " AND name=?", (run_id, name)).fetchone()
+        return row["join_token"] if row else None
+
     def session_owner(self, run_id: str, session: str) -> str | None:
         with self._conn() as conn:
             row = conn.execute(

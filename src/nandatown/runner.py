@@ -145,6 +145,7 @@ def run_town(profile_name: str, out_dir: str, port: int = 0,
              external: dict[str, list[str] | None] | None = None,
              harnesses: dict[str, str] | None = None,
              wait_timeout: float = 45.0,
+             identity_dir: str | None = None,
              on_credentials=None) -> tuple[str, Any]:
     """Run one Track profile.
 
@@ -181,11 +182,28 @@ def run_town(profile_name: str, out_dir: str, port: int = 0,
     bundle_dir: str | None = None
     try:
         _wait_health(admin)
-        created = admin.post("/runs",
-                             json={"profile": profile.model_dump()})
+        keystore = None
+        create_body: dict[str, Any] = {"profile": profile.model_dump()}
+        if identity_dir:
+            from .identity_portable import Keystore
+
+            keystore = Keystore(identity_dir)
+            create_body["identities"] = {
+                role: {k: v for k, v in
+                       keystore.new_identity(role).items()
+                       if k in ("agent_id", "controller_public")}
+                for role in profile.roles}
+        created = admin.post("/runs", json=create_body)
         created.raise_for_status()
         run_id = created.json()["run_id"]
         tokens = created.json()["join_tokens"]
+        if keystore is not None:
+            import json as _json
+
+            grants = {role: _json.dumps(keystore.make_grant(role, run_id))
+                      for role in profile.roles}
+        else:
+            grants = {}
 
         def post_event(observer: str, kind: str, subject: str,
                        detail: dict | None = None) -> None:
@@ -209,6 +227,10 @@ def run_town(profile_name: str, out_dir: str, port: int = 0,
         # A per-role harness model outranks the run-level model.
         seller_env = {**model_env, **seller_env}
         buyer_env = {**model_env, **buyer_env}
+        if "seller" in grants:
+            seller_env["TOWN_GRANT"] = grants["seller"]
+        if "buyer" in grants:
+            buyer_env["TOWN_GRANT"] = grants["buyer"]
 
         seller_deadline = str(wait_timeout - 5)
         buyer_deadline = str(wait_timeout - 15)
@@ -335,6 +357,8 @@ def run_town(profile_name: str, out_dir: str, port: int = 0,
         result = evaluate(profile, run_id, events)
         bundle_dir = os.path.join(out_dir, run_id)
         write_bundle(bundle_dir, profile, run_record, intents, events, result)
+        from .bundle import attest_bundle
+        attest_bundle(bundle_dir)
         return bundle_dir, result
     finally:
         for p in procs:

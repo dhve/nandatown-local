@@ -106,4 +106,6 @@ def run_lab(name_or_path: str, out_dir: str,
     bundle_dir = os.path.join(out_dir, engine.run_id)
     write_bundle(bundle_dir, public_spec, run_record, intents, events,
                  result, mode="lab")
+    from ..bundle import attest_bundle
+    attest_bundle(bundle_dir)
     return bundle_dir, result

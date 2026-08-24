@@ -368,7 +368,7 @@ class LLMParticipant:
 def main() -> None:
     env = os.environ
     client = TownClient(env["TOWN_URL"], env["RUN_ID"])
-    client.join(env["NAME"], env["TOKEN"])
+    client.join_auto(env["NAME"], env["TOKEN"], env.get("TOWN_GRANT"))
     participant = LLMParticipant(
         client, env["NAME"], env["ROLE"], env["STATE_DIR"],
         model=env.get("TOWN_MODEL", "mock:v1"),

@@ -46,6 +46,35 @@ class TownClient:
         self.run_context = data["run"]
         return data
 
+    def join_with_grant(self, name: str,
+                        grant_bundle: dict[str, Any]) -> dict[str, Any]:
+        """Join through a portable identity Run Grant. Only the
+        disposable session key is used here; the controller key never
+        reaches this process."""
+        from .identity_portable import session_proof
+
+        proof = session_proof(grant_bundle["session_private"],
+                              self.run_id, name)
+        r = self.http.post(
+            f"/runs/{self.run_id}/join",
+            json={"name": name, "grant": grant_bundle["grant"],
+                  "grant_signature": grant_bundle["grant_signature"],
+                  "session_proof": proof})
+        r.raise_for_status()
+        data = r.json()
+        self.session = data["session"]
+        self.name = name
+        self.run_context = data["run"]
+        return data
+
+    def join_auto(self, name: str, token: str,
+                  grant_json: str | None = None) -> dict[str, Any]:
+        import json as _json
+
+        if grant_json:
+            return self.join_with_grant(name, _json.loads(grant_json))
+        return self.join(name, token)
+
     def participants(self) -> list[dict[str, Any]]:
         r = self.http.get(f"/runs/{self.run_id}/participants",
                           headers=self._headers())

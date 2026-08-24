@@ -32,11 +32,15 @@ FAULT_TARGET_KIND = "quote_request"
 
 class CreateRun(BaseModel):
     profile: TestProfile
+    identities: dict[str, dict[str, str]] = {}
 
 
 class JoinBody(BaseModel):
     name: str
-    token: str
+    token: str = ""
+    grant: dict[str, Any] | None = None
+    grant_signature: str = ""
+    session_proof: str = ""
 
 
 class SendBody(BaseModel):
@@ -65,6 +69,23 @@ def build_app(db_path: str, admin_token: str) -> FastAPI:
     db = TownDB(db_path)
     # Fault bookkeeping per run: each fault fires at most once.
     faults: dict[str, dict[str, Any]] = {}
+    # The exact per-run identity directory: role name -> pinned
+    # {agent_id, controller_public}. The town holds only this.
+    run_identities: dict[str, dict[str, dict[str, str]]] = {}
+    # Permissions carried by grant-joined sessions.
+    session_permissions: dict[tuple[str, str], list[str]] = {}
+
+    def require_permission(run_id: str, name: str, permission: str):
+        permissions = session_permissions.get((run_id, name))
+        if permissions is not None and permission not in permissions:
+            db.record_event(run_id, observer="town",
+                            kind="grant_permission_denied", subject=name,
+                            at=time.time(),
+                            detail={"permission": permission})
+            raise HTTPException(
+                status_code=403,
+                detail={"error": "grant_permission_denied",
+                        "permission": permission})
 
     def fault_state(run_id: str) -> dict[str, Any]:
         if run_id not in faults:
@@ -99,12 +120,16 @@ def build_app(db_path: str, admin_token: str) -> FastAPI:
             db.add_participant(run_id, name, role,
                                profile.capabilities.get(name, []), token)
             join_tokens[name] = token
+        if body.identities:
+            run_identities[run_id] = body.identities
         db.record_event(run_id, observer="town", kind="run_created",
                         subject=run_id, at=now,
                         detail={"profile": profile.name,
                                 "profile_fingerprint":
                                     fingerprint(profile.model_dump()),
-                                "fault": profile.fault})
+                                "fault": profile.fault,
+                                "portable_identities":
+                                    sorted(body.identities)})
         return {"run_id": run_id, "join_tokens": join_tokens}
 
     @app.post("/runs/{run_id}/join")
@@ -113,7 +138,44 @@ def build_app(db_path: str, admin_token: str) -> FastAPI:
         profile = db.run_profile(run_id)
         if profile is None:
             raise HTTPException(status_code=404, detail="unknown run")
-        session = db.authenticate(run_id, body.name, body.token, now=now)
+        if body.grant is not None:
+            from .identity_portable import IdentityError, verify_grant
+
+            pinned = run_identities.get(run_id, {}).get(body.name)
+            if pinned is None:
+                raise HTTPException(
+                    status_code=403,
+                    detail="no portable identity pinned for this role"
+                           " in this run")
+            try:
+                verify_grant(body.grant, body.grant_signature,
+                             pinned["controller_public"], run_id,
+                             body.name, body.session_proof, now=now)
+            except IdentityError as exc:
+                db.record_event(run_id, observer="town",
+                                kind="grant_rejected", subject=body.name,
+                                at=now, detail={"reason": str(exc)})
+                raise HTTPException(status_code=403,
+                                    detail=f"grant rejected: {exc}")
+            row_token = db.join_token(run_id, body.name)
+            if row_token is None:
+                raise HTTPException(status_code=403,
+                                    detail="unknown participant")
+            session = db.authenticate(run_id, body.name, row_token,
+                                      now=now)
+            session_permissions[(run_id, body.name)] = \
+                body.grant["permissions"]
+            db.record_event(
+                run_id, observer="town",
+                kind="portable_identity_verified", subject=body.name,
+                at=now,
+                detail={"agent_id": pinned["agent_id"],
+                        "session_public": body.grant["session_public"],
+                        "permissions": body.grant["permissions"],
+                        "expires_at": body.grant["expires_at"]})
+        else:
+            session = db.authenticate(run_id, body.name, body.token,
+                                      now=now)
         if session is None:
             raise HTTPException(status_code=403, detail="join rejected")
         db.record_event(run_id, observer="town", kind="participant_joined",

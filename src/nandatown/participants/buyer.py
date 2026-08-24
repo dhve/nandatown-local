@@ -28,8 +28,9 @@ def find_seller(client: TownClient, capability: str = "quote.read") -> str | Non
 
 
 def run(client: TownClient, name: str, token: str, state_dir: str,
-        deadline_seconds: float = 25.0) -> int:
-    client.join(name, token)
+        deadline_seconds: float = 25.0,
+        grant_json: str | None = None) -> int:
+    client.join_auto(name, token, grant_json)
     task = client.run_context["task"]
     seller = find_seller(client)
     if seller is None:
@@ -67,7 +68,8 @@ def main() -> None:
     env = os.environ
     client = TownClient(env["TOWN_URL"], env["RUN_ID"])
     code = run(client, env["NAME"], env["TOKEN"], env["STATE_DIR"],
-               deadline_seconds=float(env.get("DEADLINE", "25")))
+               deadline_seconds=float(env.get("DEADLINE", "25")),
+               grant_json=env.get("TOWN_GRANT"))
     sys.exit(code)
 
 

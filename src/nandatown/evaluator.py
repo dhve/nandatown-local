@@ -203,10 +203,20 @@ def evaluate(profile: TestProfile, run_id: str,
                 "truncation_survived",
                 "no participant reported a context truncation"))
 
-    stages.append(StageResult(
-        name="portable_identity", status="not_tested",
-        note="short-lived run sessions; portable identity is a later"
-             " experiment"))
+    verified = find("portable_identity_verified")
+    if verified:
+        agent_ids = sorted({e.detail.get("agent_id", "?")
+                            for e in verified})
+        stages.append(StageResult(
+            name="portable_identity", status="passed",
+            evidence=[e.event_id for e in verified[:4]],
+            note="run grants verified against pinned controller keys"
+                 f" for {', '.join(agent_ids)}"))
+    else:
+        stages.append(StageResult(
+            name="portable_identity", status="not_tested",
+            note="this run used short-lived join tokens; rerun with"
+                 " --identity for grant-based portable identity"))
 
     applicable = [s for s in stages if s.status != "not_tested"]
     if any(s.status == "failed" for s in applicable):

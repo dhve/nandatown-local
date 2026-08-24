@@ -73,6 +73,44 @@ def write_bundle(directory: str, profile, run: RunRecord,
     return manifest
 
 
+def attest_bundle(directory: str, keystore=None,
+                  signer: str | None = None) -> dict[str, Any]:
+    """A signed, replayable attestation with provenance.
+
+    The operator's controller key signs the bundle fingerprint and the
+    verdict; anyone can replay the evidence and check the signature, so
+    the attestation is measurable, not a marketing claim."""
+    from .identity_portable import (
+        OPERATOR_NAME,
+        Keystore,
+        default_keystore_dir,
+    )
+
+    keystore = keystore or Keystore(default_keystore_dir())
+    signer = signer or OPERATOR_NAME
+    identity = keystore.new_identity(signer)
+    with open(os.path.join(directory, "manifest.json")) as f:
+        manifest = json.load(f)
+    with open(os.path.join(directory, "result.json")) as f:
+        result = json.load(f)
+    payload = {
+        "bundle_fingerprint": manifest["bundle_fingerprint"],
+        "run_id": result["run_id"],
+        "verdict": result["verdict"],
+        "evaluator_version": result["evaluator_version"],
+        "signer": identity["agent_id"],
+        "signed_at": time.time(),
+    }
+    attestation = {
+        "payload": payload,
+        "signature": keystore.sign(signer, payload),
+        "controller_public": identity["controller_public"],
+    }
+    with open(os.path.join(directory, "attestation.json"), "w") as f:
+        json.dump(attestation, f, indent=2)
+    return attestation
+
+
 def load_bundle(directory: str) -> dict[str, Any]:
     def read(name: str) -> str:
         with open(os.path.join(directory, name)) as f:
@@ -142,4 +180,27 @@ def verify_bundle(directory: str) -> list[str]:
             f" evaluation (recorded {recorded_stages} verdict"
             f" {recorded.verdict}, replay {replay_stages} verdict"
             f" {replay.verdict})")
+
+    attestation_path = os.path.join(directory, "attestation.json")
+    if os.path.exists(attestation_path):
+        from .identity_portable import verify_signature
+        from .records import fingerprint as _fingerprint
+
+        with open(attestation_path) as f:
+            attestation = json.load(f)
+        payload = attestation["payload"]
+        if payload["bundle_fingerprint"] != \
+                bundle["manifest"]["bundle_fingerprint"]:
+            problems.append("attestation names a different bundle"
+                            " fingerprint")
+        elif not verify_signature(attestation["controller_public"],
+                                  payload, attestation["signature"]):
+            problems.append("attestation signature does not verify")
+        else:
+            derived = ("did:town:" + _fingerprint(
+                attestation["controller_public"])
+                .removeprefix("sha256:")[:24])
+            if derived != payload["signer"]:
+                problems.append("attestation signer id does not match"
+                                " its controller key")
     return problems

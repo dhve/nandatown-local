@@ -74,8 +74,9 @@ def crash_wrapper(client: TownClient, journal: Journal, state_dir: str,
 
 
 def run(client: TownClient, name: str, token: str, state_dir: str,
-        fault: str, deadline_seconds: float = 60.0) -> int:
-    client.join(name, token)
+        fault: str, deadline_seconds: float = 60.0,
+        grant_json: str | None = None) -> int:
+    client.join_auto(name, token, grant_json)
     journal = Journal(os.path.join(state_dir, "journal.db"))
     handler = build_handler(client, journal)
     if fault == "crash_after_claim":
@@ -91,7 +92,8 @@ def main() -> None:
     client = TownClient(env["TOWN_URL"], env["RUN_ID"])
     code = run(client, env["NAME"], env["TOKEN"], env["STATE_DIR"],
                env.get("FAULT", "none"),
-               deadline_seconds=float(env.get("DEADLINE", "60")))
+               deadline_seconds=float(env.get("DEADLINE", "60")),
+               grant_json=env.get("TOWN_GRANT"))
     sys.exit(code)
 
 
