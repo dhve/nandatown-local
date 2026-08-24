@@ -224,6 +224,66 @@ def cmd_services(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_import_pr(args: argparse.Namespace) -> int:
+    import json
+
+    from .protocols import ProtocolImportError, import_pr
+
+    try:
+        protocol_dir = import_pr(args.number, repo=args.repo,
+                                 out_dir=args.out)
+    except ProtocolImportError as exc:
+        print(f"import failed: {exc}")
+        return 1
+    with open(f"{protocol_dir}/metadata.json") as f:
+        metadata = json.load(f)
+    print(f"imported {metadata['repo']}#{metadata['number']}:"
+          f" {metadata['title']} (by {metadata['author']},"
+          f" head {metadata['head_sha'][:12]})")
+    with open(f"{protocol_dir}/checks.jsonl") as f:
+        for line in f:
+            check = json.loads(line)
+            print(f"  {check['test']:<20} {check['result']:<22}"
+                  f" {'; '.join(check['evidence'][:2])}")
+    for note in metadata["skipped"]:
+        print(f"  skipped: {note}")
+    print("status: imported-untrusted. Importing never ran this code;"
+          " test it against the reference agents when you choose:")
+    for line in metadata["usage"] or [
+            "  (no plugin, scenario, or skill detected; inspect"
+            f" {protocol_dir} yourself)"]:
+        print(f"  {line}")
+    return 0
+
+
+def cmd_protocols(args: argparse.Namespace) -> int:
+    import json
+
+    from .protocols import protocol_entries
+
+    entries = protocol_entries(args.dir)
+    if not entries:
+        print(f"no imported protocols in {args.dir}; pull one with:"
+              " nandatown import-pr <number>")
+        return 0
+    if args.name:
+        entry = next((e for e in entries if e["name"] == args.name), None)
+        if entry is None:
+            print(f"no protocol {args.name!r} in the catalog")
+            return 1
+        with open(f"{args.dir}/{args.name}/metadata.json") as f:
+            print(json.dumps(json.load(f), indent=2))
+        return 0
+    width = max(len(e["name"]) for e in entries)
+    for e in entries:
+        checks = e["checks"]
+        print(f"{e['name'].ljust(width)}  {e['status']}"
+              f"  by {e['author']}"
+              f"  checks passed {checks['passed']}"
+              f" failed {checks['failed']} unknown {checks['unknown']}")
+    return 0
+
+
 def cmd_campaign(args: argparse.Namespace) -> int:
     from .campaign import run_campaign
 
@@ -429,6 +489,22 @@ def main(argv: list[str] | None = None) -> int:
     p_skills.add_argument("name", nargs="?", default=None)
     p_skills.add_argument("--validate", metavar="PATH", default=None)
     p_skills.set_defaults(func=cmd_skills)
+
+    p_import = sub.add_parser(
+        "import-pr", help="import a protocol contribution (a PR) from"
+                          " the upstream nandatown repo for local"
+                          " testing")
+    p_import.add_argument("number", type=int)
+    p_import.add_argument("--repo", default="projnanda/nandatown")
+    p_import.add_argument("--out", default="protocols")
+    p_import.set_defaults(func=cmd_import_pr)
+
+    p_protocols = sub.add_parser(
+        "protocols", help="list imported protocol contributions, or"
+                          " show one's metadata")
+    p_protocols.add_argument("name", nargs="?", default=None)
+    p_protocols.add_argument("--dir", default="protocols")
+    p_protocols.set_defaults(func=cmd_protocols)
 
     p_onramp = sub.add_parser(
         "onramp", help="turn a local OpenAPI document into a reviewable"
