@@ -62,29 +62,4 @@ export const agenticCommerceEvent = {
     { name: "Josh Flayhart", affiliation: "Linq, Staff Engineer" },
     { name: "Ujwal Chaudhari", affiliation: "Visa, Product" },
   ],
-  maritime: {
-    name: "Maritime",
-    url: "https://maritime.sh",
-    signupUrl: "https://maritime.sh/signup",
-    partnership:
-      "Project NANDA has partnered with Maritime, a cloud platform for hosting AI agents, so every team can prove their work on real running agents — not just local scenario runs.",
-    steps: [
-      {
-        title: "Create a Maritime account",
-        body: "Sign up at maritime.sh — it takes a minute and hackathon teams get started free.",
-      },
-      {
-        title: "Spin up three agents",
-        body: "Pick OpenClaw, Hermes, or any framework you like. Each agent gets its own cloud VM, live in about a minute.",
-      },
-      {
-        title: "Give them your skill",
-        body: "Install the adapter or skill you built on your agents and let them actually use it — quote, pay, verify, refund.",
-      },
-      {
-        title: "Test outside the sandbox",
-        body: "Run real transactions between hosted agents to show your infra holds up beyond the sandbox. That's the demo judges remember.",
-      },
-    ],
-  },
 } as const;

@@ -151,67 +151,22 @@ export default function AgenticCommercePage() {
                 can find the code.
               </li>
             </ol>
-          </div>
-        </div>
-      </section>
-
-      {/* MARITIME PARTNER — test on real infra */}
-      <section id="maritime" className="scroll-mt-24 border-t border-cream-400/70 bg-cream-50">
-        <div className="mx-auto max-w-[1240px] px-6 sm:px-10 py-20 md:py-24">
-          <div className="grid gap-12 lg:grid-cols-[1fr_1.2fr] lg:items-start">
-            <div>
-              <div className="flex items-center gap-3">
-                <Image
-                  src="/brand/maritime.png"
-                  alt="Maritime logo"
-                  width={20}
-                  height={26}
-                  className="h-6 w-auto object-contain"
-                />
-                <p className="eyebrow">In partnership with Maritime</p>
-              </div>
-              <h2 className="font-display mt-5 text-[clamp(1.9rem,3.6vw,3rem)] leading-[1.08] tracking-[-0.015em] text-ink-900">
-                Test it on <span className="italic text-ink-700">real</span> infra.
-              </h2>
-              <p className="mt-6 max-w-md text-[1.02rem] leading-[1.7] text-ink-500">
-                {event.maritime.partnership}
-              </p>
-              <a
-                href={event.maritime.signupUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-secondary mt-8 inline-flex items-center gap-2.5"
-              >
-                <Image
-                  src="/brand/maritime.png"
-                  alt=""
-                  width={14}
-                  height={18}
-                  className="h-4 w-auto object-contain"
-                />
-                Start on maritime.sh &rarr;
-              </a>
-            </div>
-            <ol className="grid gap-4 lg:pt-2">
-              {event.maritime.steps.map((step, i) => (
-                <li
-                  key={step.title}
-                  className="flex gap-4 rounded-2xl border border-cream-400/70 bg-cream-50 p-5"
-                >
-                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-rust">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[0.97rem] font-semibold leading-[1.5] text-ink-900">
-                      {step.title}
-                    </span>
-                    <span className="mt-1 block text-[0.95rem] leading-[1.6] text-ink-600">
-                      {step.body}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ol>
+            <p className="mt-8 flex items-center gap-2 border-t border-rust/20 pt-5 text-[0.88rem] leading-[1.6] text-ink-400">
+              <Image
+                src="/brand/maritime.png"
+                alt=""
+                width={11}
+                height={14}
+                className="h-3.5 w-auto object-contain opacity-60"
+              />
+              <span>
+                Want to test beyond the sandbox? Spin up hosted agents with our
+                partner{" "}
+                <a href="https://maritime.sh" target="_blank" rel="noreferrer" className="text-ink-500 underline decoration-ink-300 underline-offset-4 hover:text-rust hover:decoration-rust">
+                  Maritime
+                </a>.
+              </span>
+            </p>
           </div>
         </div>
       </section>
@@ -285,28 +240,9 @@ export default function AgenticCommercePage() {
       {/* CTA */}
       <section className="border-t border-cream-400/70 bg-ink-900 text-cream-50">
         <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-8 px-6 py-16 sm:px-10 md:py-20">
-          <div>
-            <p className="font-display text-[clamp(1.6rem,3vw,2.4rem)] leading-tight">
-              agentic-commerce.devfolio.co
-            </p>
-            <a
-              href={event.maritime.url}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex items-center gap-2.5 opacity-70 transition-opacity hover:opacity-100"
-            >
-              <Image
-                src="/brand/maritime.png"
-                alt="Maritime logo"
-                width={14}
-                height={18}
-                className="h-4 w-auto object-contain brightness-0 invert"
-              />
-              <span className="font-mono text-[10px] uppercase tracking-[0.22em]">
-                In partnership with Maritime
-              </span>
-            </a>
-          </div>
+          <p className="font-display text-[clamp(1.6rem,3vw,2.4rem)] leading-tight">
+            agentic-commerce.devfolio.co
+          </p>
           <a
             href={event.applyUrl}
             target="_blank"
