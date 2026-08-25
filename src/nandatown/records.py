@@ -129,7 +129,8 @@ class EvidenceRecord(BaseModel):
     evidence: list[str] = []
 
 
-StageStatus = Literal["passed", "failed", "not_enough_evidence", "not_tested"]
+StageStatus = Literal["passed", "failed", "not_enough_evidence",
+                      "not_tested", "error"]
 
 
 class StageResult(BaseModel):
@@ -145,5 +146,5 @@ class EvidenceResult(BaseModel):
     run_id: str
     evaluator_version: str
     stages: list[StageResult]
-    verdict: Literal["passed", "failed", "incomplete"]
+    verdict: Literal["passed", "failed", "incomplete", "error"]
     evaluated_at: float

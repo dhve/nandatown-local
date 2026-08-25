@@ -88,6 +88,11 @@ def run_lab(name_or_path: str, out_dir: str,
         spec.model_dump()))
 
     result = evaluate_scenario(public_spec, engine.run_id, events)
+    rerun = f"nandatown run {name_or_path} --seed {spec.seed}"
+    for path in plugins or []:
+        rerun += f" --plugin {path}"
+    for layer, plugin_id in (layer_overrides or {}).items():
+        rerun += f" --layer {layer}={plugin_id}"
     run_record = RunRecord(
         run_id=engine.run_id,
         profile_name=spec.name,
@@ -101,7 +106,8 @@ def run_lab(name_or_path: str, out_dir: str,
         },
         config={"mode": "lab", "seed": spec.seed,
                 "layers": spec.layers,
-                "logical_time": engine.now},
+                "logical_time": engine.now,
+                "rerun_command": rerun},
     )
     bundle_dir = os.path.join(out_dir, engine.run_id)
     write_bundle(bundle_dir, public_spec, run_record, intents, events,

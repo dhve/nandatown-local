@@ -233,14 +233,34 @@ def evaluate(profile: TestProfile, run_id: str,
             note="this run used short-lived join tokens; rerun with"
                  " --identity for grant-based portable identity"))
 
-    applicable = [s for s in stages if s.status != "not_tested"]
-    if any(s.status == "failed" for s in applicable):
-        verdict = "failed"
-    elif all(s.status == "passed" for s in applicable):
-        verdict = "passed"
-    else:
-        verdict = "incomplete"
-
+    cascade_unreached(stages)
     return EvidenceResult(run_id=run_id, evaluator_version=EVALUATOR_VERSION,
-                          stages=stages, verdict=verdict,
+                          stages=stages, verdict=stage_verdict(stages),
                           evaluated_at=time.time())
+
+
+def cascade_unreached(stages: list[StageResult]) -> None:
+    """After the first failed or errored stage, an inconclusive later
+    stage was simply never reached: report it not_tested, never let a
+    broken boundary masquerade as many independent inconclusives."""
+    broken = False
+    for stage in stages:
+        if broken and stage.status == "not_enough_evidence":
+            stage.status = "not_tested"
+            stage.note = ("not reached: an earlier boundary broke"
+                          + (f" ({stage.note})" if stage.note else ""))
+        if stage.status in ("failed", "error"):
+            broken = True
+
+
+def stage_verdict(stages: list[StageResult]) -> str:
+    """ERROR means the town malfunctioned; it outranks blaming the
+    subject. Missing evidence never becomes a pass."""
+    applicable = [s for s in stages if s.status != "not_tested"]
+    if any(s.status == "error" for s in applicable):
+        return "error"
+    if any(s.status == "failed" for s in applicable):
+        return "failed"
+    if applicable and all(s.status == "passed" for s in applicable):
+        return "passed"
+    return "incomplete"

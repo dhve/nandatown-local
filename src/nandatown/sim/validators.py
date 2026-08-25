@@ -443,14 +443,9 @@ def evaluate_scenario(spec, run_id: str,
         stages = fn(spec, trace)
     stages.append(ledger_conserved(trace))
     stages.append(privacy_clean(trace, spec.redact_fields))
-    applicable = [s for s in stages if s.status != "not_tested"]
-    if any(s.status == "failed" for s in applicable):
-        verdict: Any = "failed"
-    elif all(s.status == "passed" for s in applicable):
-        verdict = "passed"
-    else:
-        verdict = "incomplete"
+    from ..evaluator import stage_verdict
+
     return EvidenceResult(run_id=run_id,
                           evaluator_version=LAB_EVALUATOR_VERSION,
-                          stages=stages, verdict=verdict,
+                          stages=stages, verdict=stage_verdict(stages),
                           evaluated_at=time.time())

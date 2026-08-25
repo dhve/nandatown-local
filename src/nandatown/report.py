@@ -12,8 +12,9 @@ from typing import Any
 STATUS_LABEL = {
     "passed": "Passed",
     "failed": "Failed",
-    "not_enough_evidence": "Not enough evidence",
+    "not_enough_evidence": "Inconclusive",
     "not_tested": "Not tested",
+    "error": "ERROR (town fault)",
 }
 
 STAGE_MEANING = {
@@ -98,6 +99,18 @@ def render_report(bundle: dict[str, Any]) -> str:
                                 time.gmtime(run.created_at))
         add(f"Started:   {created}")
     add(f"Verdict:   {result.verdict.upper()}")
+    if result.verdict != "passed":
+        broken = next((s for s in result.stages
+                       if s.status in ("failed", "error")), None)
+        if broken is None:
+            broken = next((s for s in result.stages
+                           if s.status == "not_enough_evidence"), None)
+        if broken is not None:
+            note = f" ({broken.note})" if broken.note else ""
+            add(f"First broken stage: {broken.name}{note}")
+    rerun = run.config.get("rerun_command")
+    if rerun:
+        add(f"Rerun:     {rerun}")
     add("")
     add("The journey: bring, connect, attempt, disrupt, inspect, improve.")
     add("")

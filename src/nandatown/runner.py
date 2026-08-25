@@ -343,6 +343,14 @@ def run_town(profile_name: str, out_dir: str, port: int = 0,
                                   "skill_releases": skill_releases}
         if harnesses:
             config["harnesses"] = harnesses
+        rerun = f"nandatown run {profile.name}"
+        for role, spec_text in (harnesses or {}).items():
+            rerun += f" --agent {role}={spec_text}"
+        if identity_dir:
+            rerun += " --identity"
+        if uses_llm and model != "mock:v1":
+            rerun += f" --model {model}"
+        config["rerun_command"] = rerun
         if uses_llm:
             config["model"] = model
             if not model.startswith("mock:"):
