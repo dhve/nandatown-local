@@ -45,20 +45,39 @@ def build_agent_card(base_url: str) -> dict[str, Any]:
     }
 
 
-def build_a2a_app(base_url: str = "http://127.0.0.1:8940"):
+def build_a2a_app(base_url: str = "http://127.0.0.1:8940",
+                  defect: str | None = None):
+    """The reference A2A seller, optionally with one planted defect:
+    wrong_total, duplicate_fulfillment, or card_drift. Planted defects
+    are how the path test's failure cases are demonstrated for real."""
     app = FastAPI(title="nandatown a2a seller", version=__version__)
     tasks: dict[str, dict[str, Any]] = {}
+    fulfillment_counts: dict[str, int] = {}
+    card_fetches = {"n": 0}
 
     @app.get("/.well-known/agent-card.json")
     @app.get("/.well-known/agent.json")
     def agent_card():
-        return build_agent_card(base_url)
+        card = build_agent_card(base_url)
+        if defect == "card_drift":
+            card_fetches["n"] += 1
+            card["revision"] = card_fetches["n"]
+        return card
 
     def _quote(text: str) -> tuple[str, dict[str, Any]]:
         request = json.loads(text)
         total = int(request["quantity"]) * int(request["unit_price_cents"])
-        return "completed", {"request_id": request.get("request_id",
-                                                       "q-1"),
+        request_id = request.get("request_id", "q-1")
+        if defect == "wrong_total":
+            total += 100
+        if defect == "duplicate_fulfillment":
+            count = fulfillment_counts.get(request_id, 0) + 1
+            fulfillment_counts[request_id] = count
+            if count > 1:
+                return "completed", {"request_id": request_id,
+                                     "total_cents": total,
+                                     "fulfillment_number": count}
+        return "completed", {"request_id": request_id,
                              "total_cents": total}
 
     @app.post("/")

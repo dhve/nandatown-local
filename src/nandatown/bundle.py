@@ -121,6 +121,9 @@ def load_bundle(directory: str) -> dict[str, Any]:
     if mode == "lab":
         from .sim.scenario import ScenarioSpec
         profile: Any = ScenarioSpec.model_validate_json(read("profile.json"))
+    elif mode == "path":
+        from .path_profiles import PathProfile
+        profile = PathProfile.model_validate_json(read("profile.json"))
     else:
         profile = TestProfile.model_validate_json(read("profile.json"))
     return {
@@ -163,6 +166,10 @@ def verify_bundle(directory: str) -> list[str]:
         from .sim.validators import LAB_EVALUATOR_VERSION, evaluate_scenario
         expected_version = LAB_EVALUATOR_VERSION
         replay_fn = evaluate_scenario
+    elif bundle["mode"] == "path":
+        from .path_runner import PATH_EVALUATOR_VERSION, evaluate_path
+        expected_version = PATH_EVALUATOR_VERSION
+        replay_fn = evaluate_path
     else:
         expected_version = EVALUATOR_VERSION
         replay_fn = evaluate

@@ -58,6 +58,13 @@ STAGE_MEANING = {
     "honest_trade_completed": "the real trade still went through",
     "ledger_conserved": "money was conserved across every movement",
     "privacy": "declared private fields never left the run",
+    "resolution": "the subject was found through the declared path",
+    "agent_card_retrieval": "the agent card was fetched and digested",
+    "descriptor_consistency": "the observed card matches the pinned one",
+    "protocol_invocation": "a native protocol exchange returned a task",
+    "semantic_result": "the task produced the required result",
+    "duplicate_request": "the duplicate order caused no second"
+                         " fulfillment",
 }
 
 SCOPE_SENTENCE = ("This result applies only to the named agents, releases,"
@@ -74,7 +81,14 @@ def render_report(bundle: dict[str, Any]) -> str:
     add("NANDA Town System Fitness Report")
     add("=" * 40)
     add(f"Run:       {run.run_id}")
-    if bundle.get("mode") == "lab":
+    if bundle.get("mode") == "path":
+        add(f"Subject:   {run.config.get('subject')}"
+            " (an already-running external agent)")
+        add(f"Profile:   {profile.ref}"
+            f" ({run.profile_fingerprint[:23]})")
+        add(f"Condition: {profile.controlled_condition}: the same"
+            " logical order is delivered twice")
+    elif bundle.get("mode") == "lab":
         faults = ", ".join(f"{f.action} {f.kind}" for f in profile.faults) \
             or "none"
         add(f"Scenario:  {profile.name} (seed {run.config.get('seed')})")

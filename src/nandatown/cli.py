@@ -86,9 +86,26 @@ def cmd_test_agent(args: argparse.Namespace) -> int:
     from .report import render_report
     from .runner import run_town
 
+    if args.url or args.index:
+        from .path_runner import run_path_test
+
+        print(f"nandatown {__version__}: path test of"
+              f" {args.url or args.agent_name} under profile"
+              f" {args.path_profile}")
+        bundle_dir, result = run_path_test(
+            args.url, args.out, profile_ref=args.path_profile,
+            pin_card_digest=args.pin_card_digest,
+            index_file=args.index, agent_name=args.agent_name)
+        print(render_report(load_bundle(bundle_dir)))
+        applicable = [s for s in result.stages
+                      if s.status != "not_tested"]
+        passed = sum(1 for s in applicable if s.status == "passed")
+        print(f"{passed} of {len(applicable)} path stages passed.")
+        print(f"Evidence bundle: {bundle_dir}")
+        return 0 if result.verdict == "passed" else 1
     if not args.cmd and not args.wait:
-        print("give your agent with --cmd \"...\" or use --wait to join"
-              " it manually")
+        print("test an already-running agent with --url <endpoint>, or"
+              " give a town-joining agent with --cmd \"...\" or --wait")
         return 2
     if args.cmd:
         external = {args.role: shlex.split(args.cmd)}
@@ -527,12 +544,18 @@ def cmd_a2a(args: argparse.Namespace) -> int:
     import json
 
     if args.action == "serve":
-        from .a2a_adapter import main as a2a_main
-        import sys as _sys
+        import uvicorn
 
-        _sys.argv = ["nandatown-a2a", "--host", args.host,
-                     "--port", str(args.port)]
-        a2a_main()
+        from .a2a_adapter import build_a2a_app
+
+        base_url = f"http://{args.host}:{args.port}"
+        print(f"A2A reference seller on {base_url}"
+              + (f" with planted defect {args.defect}" if args.defect
+                 else ""))
+        print(f"agent card: {base_url}/.well-known/agent-card.json")
+        uvicorn.run(build_a2a_app(base_url, defect=args.defect),
+                    host=args.host, port=args.port,
+                    log_level="warning")
         return 0
     if args.action == "test":
         if not args.url:
@@ -653,8 +676,23 @@ def main(argv: list[str] | None = None) -> int:
 
     p_test = sub.add_parser(
         "test-agent",
-        help="test YOUR agent against the town: it plays one role, the"
-             " town supplies the counterpart and the report")
+        help="test YOUR agent: --url path-tests an already-running"
+             " external endpoint; --cmd or --wait joins one into the"
+             " town")
+    p_test.add_argument("--url", default=None,
+                        help="an already-running external A2A endpoint;"
+                             " Town acts as deterministic counterpart"
+                             " and observer")
+    p_test.add_argument("--path-profile",
+                        default="a2a-capability-fulfillment@0.1",
+                        help="the exact versioned path profile")
+    p_test.add_argument("--pin-card-digest", default=None,
+                        help="expected agent card fingerprint; a"
+                             " mismatch fails descriptor consistency")
+    p_test.add_argument("--index", default=None,
+                        help="pinned local index file resolving"
+                             " --agent-name to an endpoint")
+    p_test.add_argument("--agent-name", default=None)
     p_test.add_argument("--role", choices=["seller", "buyer"],
                         default="seller")
     p_test.add_argument("--profile", default="quote-clean")
@@ -834,6 +872,11 @@ def main(argv: list[str] | None = None) -> int:
     p_a2a.add_argument("url", nargs="?", default=None)
     p_a2a.add_argument("--host", default="127.0.0.1")
     p_a2a.add_argument("--port", type=int, default=8940)
+    p_a2a.add_argument("--defect", default=None,
+                       choices=["wrong_total", "duplicate_fulfillment",
+                                "card_drift"],
+                       help="plant one defect in the reference seller"
+                            " to demonstrate a failing path test")
     p_a2a.set_defaults(func=cmd_a2a)
 
     p_coord = sub.add_parser("coordinator",
