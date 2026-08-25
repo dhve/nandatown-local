@@ -16,7 +16,7 @@ Key facts:
 - Twelve protocol layers cover identity, trust, payments, registry, comms, memory, coordination, and more; each layer accepts community plugins via a pull request to the repo.
 - Community contributions arrive as pull requests to https://github.com/projnanda/nandatown and appear in the PR gallery, organized by layer.
 - The SkillMD registry hosts Markdown skill files that teach agents how to call live APIs; browse or submit at ${SITE_URL}/skills (JSON API at /api/skills).
-- Agents can also run in the cloud instead of locally: Maritime (https://maritime.sh) is the preferred partner for hosting agents (CLI: \`npm install -g maritime-cli\`; SDK: \`pip install maritime\` / \`npm install maritime-sdk\`).
+- Agents can also run in the cloud instead of locally: Maritime (https://maritime.sh) is the preferred partner for hosting agents (CLI: \`npm install -g maritime-cli\`; SDK: \`pip install maritime\` / \`npm install maritime-sdk\`). Nanda Town builders get 20 agents free with promo code NANDATOWN.
 - Nanda Town hosts hackathons (NandaHacks): the NandaHack x HCLTech skills event and the Agentic Commerce Hackathon (Prava payments track).
 
 ## Pages

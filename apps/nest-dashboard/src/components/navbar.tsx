@@ -137,7 +137,7 @@ export function Navbar() {
       <div className="sticky top-0 z-50 md:hidden">
         <div className="flex h-14 items-center justify-between border-b border-cream-400/60 bg-cream-100/85 px-5 backdrop-blur-xl">
           <Link href="/" className="flex items-center gap-2.5" aria-label="Nanda Town — home">
-            <Image src="/brand/nandatown-logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
+            <Image src="/brand/nanda-logo-color.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
             <span className="font-display text-[1.15rem] leading-none tracking-tight text-ink-900">Nanda Town</span>
           </Link>
           <button
@@ -178,7 +178,7 @@ export function Navbar() {
         {collapsed ? (
           <div className="flex flex-col items-center gap-3 px-2 pt-5">
             <Link href="/" aria-label="Nanda Town — home">
-              <Image src="/brand/nandatown-logo.png" alt="" width={30} height={30} priority className="h-[30px] w-[30px] object-contain" />
+              <Image src="/brand/nanda-logo-color.png" alt="" width={30} height={30} priority className="h-[30px] w-[30px] object-contain" />
             </Link>
             <button type="button" onClick={toggle} className={toggleBtnCls} aria-label="Expand sidebar" title="Expand sidebar">
               &raquo;
@@ -187,7 +187,7 @@ export function Navbar() {
         ) : (
           <div className="flex items-start justify-between px-5 pt-6 pb-4">
             <Link href="/" className="flex items-center gap-3" aria-label="Nanda Town by Project NANDA — home">
-              <Image src="/brand/nandatown-logo.png" alt="" width={34} height={34} priority className="h-[34px] w-[34px] object-contain" />
+              <Image src="/brand/nanda-logo-color.png" alt="" width={34} height={34} priority className="h-[34px] w-[34px] object-contain" />
               <span className="flex flex-col">
                 <span className="font-display text-[1.25rem] leading-none tracking-tight text-ink-900">Nanda Town</span>
                 <span className="mt-1.5 font-mono text-[9px] uppercase leading-none tracking-[0.18em] text-ink-300">by Project NANDA</span>

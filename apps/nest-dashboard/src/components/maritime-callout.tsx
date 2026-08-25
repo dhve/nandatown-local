@@ -9,7 +9,7 @@ const MARITIME_URL = "https://maritime.sh";
  */
 export function MaritimeCallout({
   title = "Want to try it with an agent in the cloud?",
-  body = "Maritime is our preferred partner for hosting AI agents.",
+  body = "Maritime is our preferred partner for hosting AI agents — 20 agents free with code NANDATOWN.",
   className = "",
 }: {
   title?: string;

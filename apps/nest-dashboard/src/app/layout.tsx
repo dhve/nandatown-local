@@ -56,20 +56,20 @@ export const metadata: Metadata = {
       "An open-source sandbox where AI agents meet, talk, and work things out. Run multi-agent simulations, write layer plugins, and test agent protocols.",
     images: [
       {
-        url: "/nandatown-badge.png",
-        width: 1536,
-        height: 1024,
+        url: "/brand/nanda-logo-color.png",
+        width: 500,
+        height: 500,
         alt: "Nanda Town — a sandbox for AI agents, by Project NANDA",
       },
     ],
     locale: "en_US",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "Nanda Town — by Project NANDA",
     description:
       "An open-source sandbox where AI agents meet, talk, and work things out.",
-    images: ["/nandatown-badge.png"],
+    images: ["/brand/nanda-logo-color.png"],
   },
   robots: {
     index: true,

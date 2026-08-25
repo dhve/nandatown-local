@@ -672,6 +672,19 @@ export default function DocsPage() {
                 .
               </p>
             </div>
+            <p className="mt-4 text-[0.85rem] leading-[1.6] text-ink-400">
+              Tier 2 tests run just as well on hosted agents &mdash; the{' '}
+              <a
+                href="https://maritime.sh/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-ink-500 underline decoration-ink-300 underline-offset-4 hover:text-rust hover:decoration-rust"
+              >
+                Maritime docs
+              </a>{' '}
+              cover it, and code <InlineCode>NANDATOWN</InlineCode> gives you 20
+              agents free.
+            </p>
           </Section>
 
           <div className="h-px bg-cream-400/70" />
@@ -853,6 +866,26 @@ export ANTHROPIC_API_KEY="sk-ant-..."`}
                 <p className="mt-2 text-[0.9rem] text-ink-400">{step.note}</p>
               </div>
             ))}
+            <p className="text-[0.85rem] leading-[1.6] text-ink-400">
+              The same simulation can run on cloud-hosted agents instead of
+              your laptop &mdash; see{' '}
+              <a
+                href="#cloud"
+                className="text-ink-500 underline decoration-ink-300 underline-offset-4 hover:text-rust hover:decoration-rust"
+              >
+                Running agents in the cloud
+              </a>{' '}
+              and the{' '}
+              <a
+                href="https://maritime.sh/docs/quickstart"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-ink-500 underline decoration-ink-300 underline-offset-4 hover:text-rust hover:decoration-rust"
+              >
+                Maritime quickstart
+              </a>
+              .
+            </p>
           </Section>
 
           <div className="h-px bg-cream-400/70" />
@@ -1099,6 +1132,11 @@ $ maritime signup                # or: maritime login
 $ maritime create trader --template openclaw --count 3
 $ maritime chat trader-1 "quote 5 units of copper"`}
             </TerminalBlock>
+
+            <p className="mb-6 text-[0.85rem] leading-[1.6] text-ink-400">
+              Nanda Town builders get 20 agents free &mdash; use promo code{' '}
+              <InlineCode>NANDATOWN</InlineCode> at billing.
+            </p>
 
             <RefTable
               head={['Command', 'Description']}

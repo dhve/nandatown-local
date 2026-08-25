@@ -205,7 +205,8 @@ export default function AgenticCommercePage() {
                 partner{" "}
                 <a href="https://maritime.sh" target="_blank" rel="noreferrer" className="text-ink-500 underline decoration-ink-300 underline-offset-4 hover:text-rust hover:decoration-rust">
                   Maritime
-                </a>.
+                </a>{" "}
+                &mdash; 20 agents free with code NANDATOWN.
               </span>
             </p>
           </div>

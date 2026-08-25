@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import Image from 'next/image';
 import * as d3 from 'd3';
 import { MaritimeCallout } from '@/components/maritime-callout';
 
@@ -1846,14 +1845,6 @@ export default function VisualizerPage() {
 
           <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr] lg:items-end">
             <div className="animate-fade-in stagger-1 flex items-start gap-5">
-              <Image
-                src="/nandatown-badge.png"
-                alt=""
-                width={120}
-                height={80}
-                priority
-                className="shrink-0 mt-3 hidden sm:block mix-blend-multiply select-none"
-              />
               <h1 className="font-display text-[clamp(2.6rem,6vw,5rem)] leading-[1.02] tracking-tight text-ink-900">
                 Watch a<br />
                 <span className="italic text-rust">simulation</span><br />
