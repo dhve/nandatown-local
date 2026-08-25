@@ -268,7 +268,54 @@ imported-untrusted. Importing never runs the code. When you choose to,
 scenario, so the contribution runs against the town's reference agents
 and comes back with a stage report.
 
-## Test your own agent
+## Test the path, not just the protocol
+
+Every component can look healthy in isolation while the composition
+fails. The path test answers the question that matters: can this exact
+agent complete this exact NANDA journey, and if not, which boundary
+broke first?
+
+```
+nandatown test-agent --url http://127.0.0.1:9999
+nandatown test-agent --index my-index.json --agent-name maya-seller --pin-card-digest sha256:...
+```
+
+Your agent is already running; you migrate nothing and supply no model
+key. Town acts as a deterministic counterpart and observer, walking an
+exact versioned profile (`a2a-capability-fulfillment@0.1`): resolve
+the subject, fetch and digest the agent card, check it against the
+pinned descriptor, make a native protocol exchange, check the semantic
+result (a two-widget order with a run nonce, exactly one terminal
+fulfillment), then apply the controlled condition: the same logical
+order delivered twice, where the invariant is no second distinct
+fulfillment. The report names the first broken stage with expected and
+observed digests, and every result carries a rerun command. Five
+statuses keep it honest: PASS, FAIL, NOT TESTED, INCONCLUSIVE, and
+ERROR, where ERROR means Town itself malfunctioned and is never blamed
+on your agent. Try the failure modes against the reference seller:
+`nandatown a2a serve --defect wrong_total` (or `duplicate_fulfillment`
+or `card_drift`).
+
+## Receipts and Town Proof
+
+```
+nandatown receipt runs/<id>
+nandatown verify-receipt runs/<id>/receipt.json --bundle runs/<id>
+nandatown proof runs/<id> --freshness-days 30
+```
+
+Private artifacts stay in the bundle. A receipt is the sanitized
+signed derivative that can cross organizational boundaries: the exact
+claim, digests, observer, time window, coverage, and limitations. The
+signature proves a named key committed to those bytes, not that the
+observation was true or the agent safe. `proof` renders the
+TOWN-TESTED badge sentence only from conclusive, covered, fresh,
+verified evidence, and otherwise says exactly why not: the badge is
+narrow and expiring, a policy view over evidence, never the evidence
+itself. See docs/convergence.md for the full mapping to the path
+proposal.
+
+## Test a town-joining agent
 
 ```
 nandatown test-agent --role seller --cmd "python examples/byoa_seller.py"
