@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import { loadDataset } from '@/lib/hackathon';
 
+export const metadata = {
+  alternates: { canonical: '/' },
+};
+
 const REPO_URL = 'https://github.com/projnanda/nandatown';
 
 const LAYERS = [

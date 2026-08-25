@@ -23,10 +23,64 @@ const instrumentSerif = Instrument_Serif({
   display: "swap",
 });
 
+const SITE_URL = "https://nandatown.projectnanda.org";
+
 export const metadata: Metadata = {
-  title: "Nanda Town — by Project NANDA",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Nanda Town — by Project NANDA",
+    template: "%s — Nanda Town",
+  },
   description:
-    "A sandbox for testing how AI agents work together. By Project NANDA.",
+    "Nanda Town is an open-source sandbox where AI agents meet, talk, and work things out — run multi-agent simulations, write layer plugins, and test agent protocols. By Project NANDA.",
+  keywords: [
+    "AI agents",
+    "multi-agent simulation",
+    "agent protocols",
+    "Project NANDA",
+    "Nanda Town",
+    "agent sandbox",
+    "nest-core",
+    "agentic commerce",
+    "AI agent testing",
+  ],
+  applicationName: "Nanda Town",
+  authors: [{ name: "Project NANDA", url: "https://projectnanda.org" }],
+  creator: "Project NANDA",
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "Nanda Town",
+    title: "Nanda Town — by Project NANDA",
+    description:
+      "An open-source sandbox where AI agents meet, talk, and work things out. Run multi-agent simulations, write layer plugins, and test agent protocols.",
+    images: [
+      {
+        url: "/nandatown-badge.png",
+        width: 1536,
+        height: 1024,
+        alt: "Nanda Town — a sandbox for AI agents, by Project NANDA",
+      },
+    ],
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Nanda Town — by Project NANDA",
+    description:
+      "An open-source sandbox where AI agents meet, talk, and work things out.",
+    images: ["/nandatown-badge.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -35,6 +89,25 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-touch-icon.png",
   },
+};
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Project NANDA",
+  url: "https://projectnanda.org",
+  logo: `${SITE_URL}/brand/nanda-logo-color.png`,
+  sameAs: ["https://github.com/projnanda"],
+};
+
+const webSiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Nanda Town",
+  url: SITE_URL,
+  description:
+    "An open-source sandbox where AI agents meet, talk, and work things out. Run multi-agent simulations, write layer plugins, and test agent protocols.",
+  publisher: { "@type": "Organization", name: "Project NANDA" },
 };
 
 export default function RootLayout({
@@ -48,6 +121,14 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-cream-100 text-ink-900">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }}
+        />
         <HackathonBanner />
         <div className="flex min-h-screen flex-col md:flex-row">
           <Navbar />

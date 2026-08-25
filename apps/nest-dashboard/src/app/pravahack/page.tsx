@@ -4,13 +4,54 @@ import { ImagePlaceholder } from "@/components/image-placeholder";
 import { agenticCommerceEvent as event } from "@/lib/agentic-commerce-event";
 
 export const metadata = {
-  title: "Agentic Commerce Hackathon — Nanda Town",
+  title: "Agentic Commerce Hackathon",
+  description: `${event.tagline} ${event.dates}, online — with a $1,000 Project NANDA track for the best Prava payments adapter.`,
+  alternates: { canonical: "/pravahack" },
+  openGraph: {
+    title: "Agentic Commerce Hackathon",
+    description: event.tagline,
+    images: [
+      {
+        url: "/agentic-commerce/hero.jpg",
+        width: 2048,
+        height: 1152,
+        alt: "Agentic Commerce Hackathon — build AI agents that transact",
+      },
+    ],
+  },
+};
+
+const eventJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Event",
+  name: event.name,
   description: event.tagline,
+  startDate: "2026-07-31",
+  endDate: "2026-08-02",
+  eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+  eventStatus: "https://schema.org/EventScheduled",
+  location: {
+    "@type": "VirtualLocation",
+    url: event.applyUrl,
+  },
+  image: "https://nandatown.projectnanda.org/agentic-commerce/hero.jpg",
+  organizer: {
+    "@type": "Organization",
+    name: "Agentic Commerce Hackathon (Devfolio)",
+    url: "https://agentic-commerce.devfolio.co",
+  },
+  sponsor: { "@type": "Organization", name: "Project NANDA" },
+  isAccessibleForFree: true,
+  url: "https://nandatown.projectnanda.org/pravahack",
 };
 
 export default function AgenticCommercePage() {
   return (
     <div className="bg-cream-100">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }}
+      />
       {/* HERO */}
       <section className="relative paper-texture">
         <div className="relative mx-auto max-w-[1240px] px-6 sm:px-10 pt-16 pb-16 md:pt-20 md:pb-20">

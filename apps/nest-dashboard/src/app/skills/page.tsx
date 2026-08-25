@@ -9,9 +9,10 @@ import { SubmitForm } from "./submit-form";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "SkillMD Registry — Nanda Town",
+  title: "SkillMD Registry",
   description:
-    "Teach an agent a new trick. Write a SkillMD, host your endpoints, and submit it here.",
+    "Teach an agent a new trick. Write a SkillMD — a Markdown file that teaches an AI agent how to call a live API — host your endpoints, and submit it here.",
+  alternates: { canonical: "/skills" },
 };
 
 /* ------------------------------------------------------------------ */
