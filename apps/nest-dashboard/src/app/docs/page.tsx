@@ -1068,10 +1068,76 @@ nest templates duplicate <src> <dest>  # Copy and modify`}
               >
                 Maritime
               </a>{' '}
-              is our preferred partner for hosting AI agents. Every agent gets
-              its own isolated microVM that sleeps when idle and wakes on the
-              first message, so provisioning 100 agents is one loop &mdash;
-              not 100 terminals.
+              is our preferred partner for hosting AI agents &mdash; the cloud
+              for AI agents: serverless containers with identity, memory, and
+              triggers. Every agent gets its own isolated microVM that sleeps
+              when idle and wakes on the first message, so provisioning 100
+              agents is one loop &mdash; not 100 terminals.
+            </p>
+
+            <h3 className="mb-3 font-display text-[1.25rem] text-ink-900">
+              Quick start with the CLI
+            </h3>
+            <p className="mb-3 text-[0.95rem] leading-[1.65] text-ink-500">
+              The fastest way to get hosted agents is the{' '}
+              <a
+                href="https://maritime.sh/docs/cli"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-rust hover:text-ink-900 transition-colors"
+              >
+                Maritime CLI
+              </a>
+              . <InlineCode>create --count</InlineCode> spins up a whole fleet
+              in one command (named <InlineCode>trader-1</InlineCode> &hellip;{' '}
+              <InlineCode>trader-3</InlineCode>):
+            </p>
+
+            <TerminalBlock>
+{`$ npm install -g maritime-cli
+$ maritime signup                # or: maritime login
+$ maritime create trader --template openclaw --count 3
+$ maritime chat trader-1 "quote 5 units of copper"`}
+            </TerminalBlock>
+
+            <RefTable
+              head={['Command', 'Description']}
+              rows={[
+                ['maritime templates', 'List the agent templates you can create from'],
+                ['maritime create <name> --template openclaw', 'Create a hosted agent; add --count N for a fleet, -e KEY=value for env vars'],
+                ['maritime list', 'List your agents'],
+                ['maritime chat <agent> <message>', 'Send a message to an agent and print its reply'],
+                ['maritime logs <agent>', 'View an agent’s logs'],
+                ['maritime status <agent>', 'Check whether an agent is running or sleeping'],
+                ['maritime env set <agent> KEY=value', 'Set environment variables on an agent'],
+              ]}
+              monoFirstCol
+            />
+
+            <h3 className="mb-3 mt-8 font-display text-[1.25rem] text-ink-900">
+              Provision a fleet with the SDK
+            </h3>
+            <p className="mb-3 text-[0.95rem] leading-[1.65] text-ink-500">
+              For simulations you script, use the official SDK &mdash; Python
+              (
+              <a
+                href="https://pypi.org/project/maritime/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-rust hover:text-ink-900 transition-colors"
+              >
+                maritime
+              </a>
+              ) or TypeScript (
+              <a
+                href="https://www.npmjs.com/package/maritime-sdk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-rust hover:text-ink-900 transition-colors"
+              >
+                maritime-sdk
+              </a>
+              ):
             </p>
 
             <TerminalBlock>
@@ -1117,7 +1183,7 @@ fleet = [
               ). Everything else stays the same: same scenario YAML, same
               metrics, same trace file.
             </p>
-            <p className="text-[0.95rem] leading-[1.65] text-ink-500">
+            <p className="mb-8 text-[0.95rem] leading-[1.65] text-ink-500">
               You will need an API key (<InlineCode>mk_...</InlineCode>) from
               the{' '}
               <a
@@ -1130,6 +1196,34 @@ fleet = [
               </a>{' '}
               under Settings &rarr; API keys.
             </p>
+
+            <h3 className="mb-3 font-display text-[1.25rem] text-ink-900">
+              Maritime documentation
+            </h3>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {[
+                ['Quickstart', 'https://maritime.sh/docs/quickstart', 'sign up to first agent in minutes'],
+                ['CLI reference', 'https://maritime.sh/docs/cli', 'every maritime command'],
+                ['SDK overview', 'https://maritime.sh/docs/sdk', 'Python & TypeScript clients'],
+                ['SDK quickstart', 'https://maritime.sh/docs/sdk/quickstart', 'provision and chat from code'],
+                ['REST API', 'https://maritime.sh/docs/api', 'raw HTTP endpoints'],
+                ['Templates', 'https://maritime.sh/docs/templates', 'OpenClaw, Hermes & friends'],
+                ['Configuration', 'https://maritime.sh/docs/configuration', 'resources, sleep, env vars'],
+                ['Building on Maritime', 'https://maritime.sh/docs/build', 'agents inside your own product'],
+              ].map(([label, href, blurb]) => (
+                <li key={href} className="text-[0.95rem] leading-[1.6]">
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-rust hover:text-ink-900 transition-colors"
+                  >
+                    {label}
+                  </a>{' '}
+                  <span className="text-ink-400">&mdash; {blurb}</span>
+                </li>
+              ))}
+            </ul>
           </Section>
 
           <div className="h-px bg-cream-400/70" />
