@@ -375,6 +375,41 @@ def cmd_compare(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_receipt(args: argparse.Namespace) -> int:
+    from .receipt import make_receipt
+
+    path = make_receipt(args.bundle_dir)
+    print(f"receipt written to {path}")
+    print("sanitized and signed: the claim, digests, observer, window,"
+          " coverage, and limitations; nothing private leaves the"
+          " bundle")
+    return 0
+
+
+def cmd_verify_receipt(args: argparse.Namespace) -> int:
+    from .receipt import verify_receipt
+
+    problems = verify_receipt(args.receipt, bundle_dir=args.bundle)
+    if not problems:
+        print("receipt verifies: the named key committed to these exact"
+              " bytes" + (" and the bundle matches" if args.bundle
+                          else ""))
+        print("commitment is not truth, independence, or safety")
+        return 0
+    for p in problems:
+        print(f"problem: {p}")
+    return 1
+
+
+def cmd_proof(args: argparse.Namespace) -> int:
+    from .receipt import render_proof
+
+    ok, text = render_proof(args.bundle_dir,
+                            freshness_days=args.freshness_days)
+    print(text, end="")
+    return 0 if ok else 1
+
+
 def cmd_mirror(args: argparse.Namespace) -> int:
     from .mirror import mirror_bundle
 
@@ -774,6 +809,25 @@ def main(argv: list[str] | None = None) -> int:
     p_compare.add_argument("--seed", type=int, default=None)
     p_compare.add_argument("--out", default="runs")
     p_compare.set_defaults(func=cmd_compare)
+
+    p_receipt = sub.add_parser(
+        "receipt", help="write a sanitized signed receipt for a bundle")
+    p_receipt.add_argument("bundle_dir")
+    p_receipt.set_defaults(func=cmd_receipt)
+
+    p_vr = sub.add_parser(
+        "verify-receipt", help="verify a receipt offline (signature,"
+                               " signer id, optional bundle digests)")
+    p_vr.add_argument("receipt")
+    p_vr.add_argument("--bundle", default=None)
+    p_vr.set_defaults(func=cmd_verify_receipt)
+
+    p_proof = sub.add_parser(
+        "proof", help="render the TOWN-TESTED badge from conclusive,"
+                      " fresh, verified evidence, or say why not")
+    p_proof.add_argument("bundle_dir")
+    p_proof.add_argument("--freshness-days", type=float, default=30.0)
+    p_proof.set_defaults(func=cmd_proof)
 
     p_mirror = sub.add_parser(
         "mirror", help="store a content-addressed copy of a bundle in"
