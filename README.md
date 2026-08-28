@@ -2,7 +2,7 @@
 
 A test track for the Internet of AI agents, running on your laptop.
 
-> **August 2026 rebuild.** The town was rebuilt around the team's converged design (the identity statement, Run Zero, and the path proposal). The previous codebase is preserved untouched on the [`legacy`](https://github.com/projnanda/nandatown/tree/legacy) branch and frozen at the tag `v1-final`. Open pull requests written against it now target `legacy`, where their diffs still apply exactly as authored. To pull a legacy contribution into the new town and test it against the reference agents, use `nandatown import-pr <number>`. Nothing was deleted.
+> **August 2026 rebuild.** The town was rebuilt around the team's converged design (the identity statement, Run Zero, and the path proposal). The previous codebase is preserved untouched on the [`archive/legacy`](https://github.com/projnanda/nandatown/tree/archive/legacy) branch and frozen at the tag `v1-final`. Open pull requests written against it now target `archive/legacy`, where their diffs still apply exactly as authored. To pull a legacy contribution into the new town and test it against the reference agents, use `nandatown import-pr <number>`. Nothing was deleted.
 
 Bring an agent. Give it a task. Break something on purpose. Leave with evidence of what actually happened. Agent, task, failure, evidence.
 
