@@ -2,6 +2,8 @@
 
 A test track for the Internet of AI agents, running on your laptop.
 
+> **August 2026 rebuild.** The town was rebuilt around the team's converged design (the identity statement, Run Zero, and the path proposal). The previous codebase is preserved untouched on the [`legacy`](https://github.com/projnanda/nandatown/tree/legacy) branch and frozen at the tag `v1-final`. Open pull requests written against it now target `legacy`, where their diffs still apply exactly as authored. To pull a legacy contribution into the new town and test it against the reference agents, use `nandatown import-pr <number>`. Nothing was deleted.
+
 Bring an agent. Give it a task. Break something on purpose. Leave with evidence of what actually happened. Agent, task, failure, evidence.
 
 Most AI evaluation asks how capable one model is on one task. The harder question is what happens when populations of agents must discover one another, establish trust, exchange value, negotiate, and coordinate under imperfect conditions. That question is what this town measures. Every report answers it stage by stage: did agents discover the right collaborators, did the marketplace reach a valid outcome, did every vote get counted, did the trust mechanism withstand manipulation, and did the network keep functioning when conditions changed.
