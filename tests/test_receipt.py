@@ -40,7 +40,10 @@ def test_receipt_is_sanitized_signed_and_verifiable(tmp_path):
     assert payload["limitations"]
     text = json.dumps(receipt)
     assert "widget" not in text
-    assert "1995" not in text
+    assert "sku" not in text
+    assert "unit_price_cents" not in text
+    assert "quantity" not in text
+    assert "request_id" not in text
 
 
 def test_tampered_receipt_is_caught(tmp_path):
