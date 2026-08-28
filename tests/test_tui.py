@@ -67,3 +67,17 @@ def test_evidence_verify_from_the_evidence_tab(tmp_path):
             await pilot.pause()
 
     run_async(go())
+
+
+def test_kiosk_mode_disables_execution_surfaces(tmp_path):
+    async def go():
+        app = TownApp(out_dir=str(tmp_path), kiosk=True)
+        async with app.run_test() as pilot:
+            assert not app.query("#agent-cmd")
+            assert not app.query("#agent-go")
+            assert not app.query("#svc-path")
+            assert app.query("#run-go")
+            assert app.query("#pr-go")
+            await pilot.pause()
+
+    run_async(go())

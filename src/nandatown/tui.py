@@ -72,9 +72,13 @@ class TownApp(App):
     .rolelabel { width: 8; padding-top: 1; color: $text-muted; }
     """
 
-    def __init__(self, out_dir: str = "runs"):
+    def __init__(self, out_dir: str = "runs", kiosk: bool = False):
         super().__init__()
         self.out_dir = out_dir
+        # Kiosk mode is for hosted deployments: every surface that
+        # would execute visitor-supplied commands or read server-local
+        # paths is disabled; runs, evidence, imports stay available.
+        self.kiosk = kiosk
 
     # -- layout ---------------------------------------------------------
 
@@ -120,22 +124,32 @@ class TownApp(App):
                     yield RichLog(id="run-log", wrap=True, markup=False)
             with TabPane("Agents", id="tab-agents"):
                 with VerticalScroll(classes="pane"):
-                    yield Static(
-                        "Test YOUR agent: it plays one role, the town"
-                        " supplies the counterpart, the fault, and the"
-                        " report. The command gets TOWN_URL, RUN_ID,"
-                        " NAME, TOKEN in its environment.",
-                        classes="hint")
-                    with Horizontal(classes="row"):
-                        yield Select([("seller", "seller"),
-                                      ("buyer", "buyer")],
-                                     id="agent-role", value="seller",
-                                     allow_blank=False)
-                        yield Input(placeholder="python my_agent.py",
-                                    id="agent-cmd")
-                        yield Button("Test my agent", id="agent-go",
-                                     variant="primary")
-                    yield RichLog(id="agent-log", wrap=True, markup=False)
+                    if self.kiosk:
+                        yield Static(
+                            "Hosted mode: testing your own agent runs"
+                            " your command, so it is disabled here."
+                            " Run the town locally (pip install"
+                            " nandatown, then nandatown) to test your"
+                            " agent with test-agent or the cmd"
+                            " harness.", classes="hint")
+                    else:
+                        yield Static(
+                            "Test YOUR agent: it plays one role, the town"
+                            " supplies the counterpart, the fault, and the"
+                            " report. The command gets TOWN_URL, RUN_ID,"
+                            " NAME, TOKEN in its environment.",
+                            classes="hint")
+                        with Horizontal(classes="row"):
+                            yield Select([("seller", "seller"),
+                                          ("buyer", "buyer")],
+                                         id="agent-role", value="seller",
+                                         allow_blank=False)
+                            yield Input(placeholder="python my_agent.py",
+                                        id="agent-cmd")
+                            yield Button("Test my agent", id="agent-go",
+                                         variant="primary")
+                        yield RichLog(id="agent-log", wrap=True,
+                                      markup=False)
             with TabPane("Protocols", id="tab-protocols"):
                 with VerticalScroll(classes="pane"):
                     yield Static(
@@ -163,11 +177,18 @@ class TownApp(App):
                         " structural checks, a pinned catalog entry."
                         " Nothing is fetched or executed.",
                         classes="hint")
-                    with Horizontal(classes="row"):
-                        yield Input(placeholder="path/to/openapi.json",
-                                    id="svc-path")
-                        yield Button("Onramp", id="svc-go",
-                                     variant="primary")
+                    if self.kiosk:
+                        yield Static("Hosted mode: onboarding reads a"
+                                     " local file, so it is disabled"
+                                     " here; run the town locally to"
+                                     " onboard a service.",
+                                     classes="hint")
+                    else:
+                        with Horizontal(classes="row"):
+                            yield Input(placeholder="path/to/openapi.json",
+                                        id="svc-path")
+                            yield Button("Onramp", id="svc-go",
+                                         variant="primary")
                     yield DataTable(id="service-table")
                     yield RichLog(id="svc-log", wrap=True, markup=False)
             with TabPane("Evidence", id="tab-evidence"):
@@ -290,6 +311,12 @@ class TownApp(App):
         for role in ("seller", "buyer"):
             choice = self.query_one(f"#{role}-harness", Select).value
             if choice == "cmd":
+                if self.kiosk:
+                    self.query_one("#run-log", RichLog).write(
+                        "hosted mode: the cmd harness is disabled;"
+                        " run the town locally to connect your own"
+                        " process")
+                    continue
                 command = self.query_one(f"#{role}-cmd", Input).value
                 if command.strip():
                     harnesses[role] = "cmd:" + command
@@ -479,12 +506,12 @@ class TownApp(App):
                 f"visualizer written to {out}; open it in a browser")
 
 
-def launch(out_dir: str = "runs") -> None:
-    TownApp(out_dir=out_dir).run()
+def launch(out_dir: str = "runs", kiosk: bool = False) -> None:
+    TownApp(out_dir=out_dir, kiosk=kiosk).run()
 
 
 def build_web_server(out_dir: str = "runs", host: str = "127.0.0.1",
-                     port: int = 8901):
+                     port: int = 8901, kiosk: bool = False):
     """The same GUI served over HTTP: no terminal required."""
     import sys
 
@@ -492,12 +519,15 @@ def build_web_server(out_dir: str = "runs", host: str = "127.0.0.1",
 
     command = (f'"{sys.executable}" -m nandatown.cli ui'
                f' --out "{os.path.abspath(out_dir)}"')
+    if kiosk:
+        command += " --kiosk"
     return Server(command, host=host, port=port,
                   title="NANDA Town")
 
 
 def launch_web(out_dir: str = "runs", host: str = "127.0.0.1",
-               port: int = 8901) -> None:
-    server = build_web_server(out_dir, host, port)
-    print(f"NANDA Town GUI on http://{host}:{port}")
+               port: int = 8901, kiosk: bool = False) -> None:
+    server = build_web_server(out_dir, host, port, kiosk=kiosk)
+    print(f"NANDA Town GUI on http://{host}:{port}"
+          + (" (kiosk mode)" if kiosk else ""))
     server.serve()

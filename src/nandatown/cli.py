@@ -631,11 +631,12 @@ def cmd_ui(args: argparse.Namespace) -> int:
     if args.web:
         from .tui import launch_web
 
-        launch_web(out_dir=args.out, host=args.host, port=args.port)
+        launch_web(out_dir=args.out, host=args.host, port=args.port,
+                   kiosk=args.kiosk)
         return 0
     from .tui import launch
 
-    launch(out_dir=args.out)
+    launch(out_dir=args.out, kiosk=args.kiosk)
     return 0
 
 
@@ -665,6 +666,9 @@ def main(argv: list[str] | None = None) -> int:
                            " terminal")
     p_ui.add_argument("--host", default="127.0.0.1")
     p_ui.add_argument("--port", type=int, default=8901)
+    p_ui.add_argument("--kiosk", action="store_true",
+                      help="hosted mode: disable surfaces that execute"
+                           " visitor commands or read server paths")
     p_ui.set_defaults(func=cmd_ui)
 
     p_run = sub.add_parser("run", help="run a Lab scenario or Track"
