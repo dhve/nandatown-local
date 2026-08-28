@@ -664,8 +664,10 @@ def main(argv: list[str] | None = None) -> int:
     p_ui.add_argument("--web", action="store_true",
                       help="serve the GUI in a browser instead of this"
                            " terminal")
+    import os as _os
     p_ui.add_argument("--host", default="127.0.0.1")
-    p_ui.add_argument("--port", type=int, default=8901)
+    p_ui.add_argument("--port", type=int,
+                      default=int(_os.environ.get("PORT", "8901")))
     p_ui.add_argument("--kiosk", action="store_true",
                       help="hosted mode: disable surfaces that execute"
                            " visitor commands or read server paths")
