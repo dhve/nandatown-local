@@ -12,6 +12,15 @@ This is a testing tool first and a simulator second: a local-first sandbox and t
 
 The framing comes from Ramesh Raskar's NandaTown introduction and the paper "Towards Sandboxes for the Internet of Agents" (papers.ssrn.com/sol3/papers.cfm?abstract_id=5801322): agent evaluation must move from isolated task competence to system fitness. This build makes that loop executable end to end: define a population, select a scenario, swap a protocol component, inject a failure, run, inspect every interaction, and compare the outcome against properties that should remain true.
 
+![Architecture of nandatown: a CLI, TUI, and browser front door; the Lab, a seeded simulation over twelve replaceable protocol layers; the Track, a FastAPI coordinator over SQLite with subprocess participants; and one evidence pipeline that both modes write to](images/Flow.png)
+
+*How the town is built: one front door, two ways to test, one evidence pipeline.*
+
+![Sequence diagram of the quote-crash-restart profile: the buyer posts a quote request, the seller claims it under fence 1 and crashes, the runner restarts it, the seller reclaims under fence 2, any ack with the stale fence is rejected, and the buyer verifies the 3990-cent total](images/Test_track.png)
+
+*The default Track run, `quote-crash-restart`: the task is trivial on purpose; custody, recovery, and fence rejection are what get judged.*
+
+
 ## Install
 
 From the repository root, in a virtual environment:
@@ -233,7 +242,12 @@ controller, authorizes one disposable session key for one run with
 named permissions; the coordinator verifies the chain against the
 controller key pinned at run creation, and the report's
 portable_identity stage turns Passed with the verifying events as
-evidence. Identity resolvers are pluggable: the file registry is the
+evidence. The join itself and every claim, send, and acknowledgement
+are checked against the grant's permissions, and a role pinned to an
+identity cannot sidestep them with a bare token; a refused action is
+recorded as an intent plus a `grant_permission_denied` event, so a
+bundle can show an agent attempting something it was not authorized
+to do. Identity resolvers are pluggable: the file registry is the
 town's testnet registry, and an eth_call resolver reads a chain
 registry whose contract and selector are configuration.
 
@@ -331,7 +345,11 @@ agent as a subprocess with TOWN_URL, RUN_ID, NAME, TOKEN in its
 environment; `--wait` prints those credentials and waits while you
 start it anywhere else. `examples/byoa_seller.py` is a complete
 reference agent in plain standard-library Python: no nandatown import,
-no dependency, just the HTTP contract.
+no dependency, just the HTTP contract. Under `--identity` a pinned role is
+handed `TOWN_GRANT` instead of `TOKEN` and must join with an Ed25519
+session proof (`TownClient.join_with_grant`); the runner stops early,
+with a `harness_refused_grant` event, if an agent tries the bare token
+instead. The standard-library example is for token runs.
 
 ## Onboard a service
 
