@@ -1,6 +1,6 @@
 import asyncio
 
-from textual.widgets import DataTable, Select, TabbedContent
+from textual.widgets import DataTable, Select, Static, TabbedContent
 
 from nandatown.tui import TownApp
 
@@ -18,6 +18,18 @@ def test_app_mounts_with_all_tabs(tmp_path):
                 assert app.query_one(f"#{tab}")
             status = app.query_one("#town-status").render()
             assert "12 protocol layers" in str(status)
+            await pilot.pause()
+
+    run_async(go())
+
+
+def test_town_tab_links_to_the_site(tmp_path):
+    async def go():
+        app = TownApp(out_dir=str(tmp_path))
+        async with app.run_test() as pilot:
+            site = app.query_one("#town-site", Static).render()
+            assert "nanda.town" in str(site)
+            assert any("website" in str(b) for b in app.BINDINGS)
             await pilot.pause()
 
     run_async(go())

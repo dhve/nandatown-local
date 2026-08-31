@@ -56,7 +56,8 @@ def _targets() -> list[tuple[str, str]]:
 class TownApp(App):
     TITLE = (f"NANDA Town {__version__}: the open proving ground for"
              " the Internet of AI agents")
-    BINDINGS = [("q", "quit", "Quit")]
+    BINDINGS = [("q", "quit", "Quit"),
+                ("w", "website", "nanda.town")]
 
     CSS = """
     TabbedContent { height: 1fr; }
@@ -89,6 +90,10 @@ class TownApp(App):
                 with VerticalScroll(classes="pane"):
                     yield Static(JOURNEY, classes="hint")
                     yield Static(id="town-status")
+                    yield Static(
+                        "Site: [link='https://nanda.town']nanda.town"
+                        "[/link]  ([b]w[/b] opens it)",
+                        id="town-site", classes="hint")
                     with Horizontal(classes="row"):
                         yield Button("Run the default proof",
                                      id="quick-default", variant="primary")
@@ -222,6 +227,11 @@ class TownApp(App):
     def _log(self, log_id: str, text: str) -> None:
         self.call_from_thread(
             self.query_one(f"#{log_id}", RichLog).write, text)
+
+    def action_website(self) -> None:
+        # In a terminal this opens the local browser; under
+        # textual-serve it opens in the visitor's own browser.
+        self.open_url("https://nanda.town")
 
     def _refresh_status(self) -> None:
         from .board import scan_bundles
