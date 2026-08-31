@@ -73,7 +73,17 @@ export default async function Home() {
             </p>
 
             <div className="animate-fade-in stagger-3 lg:pt-2">
-              <RepoButton />
+              <div className="flex flex-wrap items-center gap-3">
+                <RepoButton />
+                <a
+                  href="https://nanda.town"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-secondary"
+                >
+                  nanda.town &rarr;
+                </a>
+              </div>
               <div className="mt-10 grid grid-cols-2 gap-6 border-t border-cream-400/70 pt-6">
                 {prTotal !== null && (
                   <Stat label="Pull requests" value={String(prTotal)} href="/prgallery" />
@@ -175,7 +185,17 @@ export default async function Home() {
           <p className="font-display text-[clamp(1.6rem,3vw,2.4rem)] leading-tight">
             github.com/projnanda/nandatown
           </p>
-          <RepoButton dark />
+          <div className="flex flex-wrap items-center gap-3">
+            <RepoButton dark />
+            <a
+              href="https://nanda.town"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center rounded-md border border-cream-50/40 px-5 py-2.5 text-[0.9rem] font-medium text-cream-50 transition-colors hover:bg-cream-50/10"
+            >
+              nanda.town &rarr;
+            </a>
+          </div>
         </div>
       </section>
     </div>

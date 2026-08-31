@@ -63,6 +63,9 @@ export function Footer() {
             <FooterLink href="https://github.com/projnanda/nandatown" external>
               GitHub
             </FooterLink>
+            <FooterLink href="https://nanda.town" external>
+              nanda.town
+            </FooterLink>
             <FooterLink href="https://projectnanda.org" external>
               Project NANDA
             </FooterLink>

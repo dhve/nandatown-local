@@ -155,7 +155,7 @@ export function Navbar() {
         {mobileOpen && (
           <div className="absolute inset-x-0 top-14 max-h-[calc(100vh-3.5rem)] overflow-y-auto border-b border-cream-400/60 bg-cream-100 px-3 py-4 shadow-lg">
             <NavList pathname={pathname} onNavigate={() => setMobileOpen(false)} />
-            <div className="mt-4 border-t border-cream-400/60 px-3 pt-4">
+            <div className="mt-4 flex items-center gap-5 border-t border-cream-400/60 px-3 pt-4">
               <a
                 href="https://github.com/projnanda/nandatown"
                 target="_blank"
@@ -163,6 +163,14 @@ export function Navbar() {
                 className="text-[0.85rem] font-medium text-ink-500 transition-colors hover:text-ink-900"
               >
                 GitHub
+              </a>
+              <a
+                href="https://nanda.town"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[0.85rem] font-medium text-ink-500 transition-colors hover:text-ink-900"
+              >
+                nanda.town
               </a>
             </div>
           </div>
@@ -208,7 +216,7 @@ export function Navbar() {
         )}
 
         {!collapsed && (
-          <div className="border-t border-cream-400/60 px-5 py-4">
+          <div className="flex items-center gap-5 border-t border-cream-400/60 px-5 py-4">
             <a
               href="https://github.com/projnanda/nandatown"
               target="_blank"
@@ -216,6 +224,14 @@ export function Navbar() {
               className="text-[0.85rem] font-medium text-ink-500 transition-colors hover:text-ink-900"
             >
               GitHub
+            </a>
+            <a
+              href="https://nanda.town"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[0.85rem] font-medium text-ink-500 transition-colors hover:text-ink-900"
+            >
+              nanda.town
             </a>
           </div>
         )}
