@@ -12,6 +12,7 @@ import sys
 
 from .. import __version__
 from ..bundle import write_bundle
+from ..layers.payments import PaymentError
 from ..records import RunRecord, TownEvent, fingerprint
 from .agents import ROLES
 from .api import TownAPI
@@ -34,7 +35,11 @@ def build_engine(spec: ScenarioSpec) -> Engine:
                            f" known: {sorted(ROLES)}")
         api = TownAPI(engine, a.name)
         engine.add_agent(cls(a.name, dict(a.config), api))
-        payments.open_account(a.name, a.config.get("balance_cents", 0))
+        try:
+            payments.open_account(a.name, a.config.get("balance_cents", 0))
+        except PaymentError as exc:
+            raise LabError(f"agent {a.name!r}: balance_cents is invalid:"
+                           f" {exc}") from exc
     return engine
 
 

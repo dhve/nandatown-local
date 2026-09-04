@@ -80,6 +80,72 @@ def test_ledger_conservation_and_escrow(eng):
     assert "payment_rejected" in eng.kinds()
 
 
+def test_amounts_must_be_positive_whole_cents(eng):
+    pay = eng.layers["payments"]
+    pay.open_account("a", 10000)
+    pay.open_account("b", 0)
+    # Funded on purpose: a broke payer trips insufficient-funds first.
+    for bad in (-5000, 0, 50.5, True, "100", None):
+        with pytest.raises(PaymentError):
+            pay.transfer("a", "b", bad, memo="bad")
+        with pytest.raises(PaymentError):
+            pay.hold("a", bad, ref=f"box-{bad}")
+    with pytest.raises(PaymentError):
+        pay.open_account("c", -1)
+    assert pay.balance("a") == 10000 and pay.balance("b") == 0
+    assert all(isinstance(v, int) for v in pay.balances.values())
+
+
+def test_negative_transfer_cannot_drain_a_counterparty(eng):
+    pay = eng.layers["payments"]
+    pay.open_account("victim", 10000)
+    pay.open_account("mallory", 0)
+    with pytest.raises(PaymentError):
+        pay.transfer("mallory", "victim", -5000, memo="a gift")
+    assert pay.balance("victim") == 10000
+    assert pay.balance("mallory") == 0
+
+
+def test_negative_hold_cannot_mint_money(eng):
+    pay = eng.layers["payments"]
+    pay.open_account("mallory", 0)
+    with pytest.raises(PaymentError):
+        pay.hold("mallory", -5000, ref="box-1")
+    assert pay.balance("mallory") == 0
+    assert pay.total() == 0
+
+
+def test_no_sequence_of_operations_creates_money(eng):
+    """Conservation survives mixed valid and malformed operations."""
+    pay = eng.layers["payments"]
+    names = ["a", "b", "c"]
+    for name in names:
+        pay.open_account(name, 5000)
+    start = pay.total()
+    rng = random.Random(1234)
+    refs = []
+    for step in range(400):
+        op = rng.choice(["transfer", "hold", "release", "refund"])
+        amount = rng.choice([-500, 0, 1, 250, 5000, 99999, 1.5, True])
+        try:
+            if op == "transfer":
+                pay.transfer(rng.choice(names), rng.choice(names), amount,
+                             memo=f"m{step}")
+            elif op == "hold":
+                ref = f"ref-{step}"
+                pay.hold(rng.choice(names), amount, ref=ref)
+                refs.append(ref)
+            elif op == "release" and refs:
+                pay.release(rng.choice(refs), rng.choice(names))
+            elif op == "refund" and refs:
+                pay.refund(rng.choice(refs))
+        except PaymentError:
+            pass
+        assert pay.total() == start, f"money changed at step {step}"
+        assert all(v >= 0 for v in pay.balances.values()), f"step {step}"
+        assert all(h["cents"] > 0 for h in pay.escrow.values()), f"step {step}"
+
+
 def test_auth_rejects_forged_sender(eng):
     identity = eng.layers["identity"]
     auth = eng.layers["auth"]

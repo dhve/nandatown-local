@@ -80,14 +80,27 @@ class TownAPI:
 
     # -- payments -------------------------------------------------------
 
+    def _amount(self, cents: Any, detail: dict[str, Any]) -> int:
+        """Validated here so every payments plugin inherits it."""
+        from ..layers.payments import PaymentError, validate_amount
+        try:
+            return validate_amount(cents)
+        except PaymentError as exc:
+            self._engine.emit("town", "payment_rejected", self.name,
+                              dict(detail, cents=repr(cents),
+                                   reason=str(exc)))
+            raise
+
     def pay(self, to: str, cents: int, memo: str) -> None:
         self._engine.record_intent(self.name, "pay",
                                    {"to": to, "cents": cents, "memo": memo})
+        cents = self._amount(cents, {"to": to, "memo": memo})
         self._engine.layers["payments"].transfer(self.name, to, cents, memo)
 
     def escrow_hold(self, cents: int, ref: str) -> None:
         self._engine.record_intent(self.name, "escrow_hold",
                                    {"cents": cents, "ref": ref})
+        cents = self._amount(cents, {"ref": ref})
         self._engine.layers["payments"].hold(self.name, cents, ref)
 
     def escrow_release(self, ref: str, to: str) -> None:
