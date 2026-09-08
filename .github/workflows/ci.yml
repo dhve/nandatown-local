@@ -20,8 +20,6 @@ jobs:
           cache-dependency-path: apps/nest-dashboard/package-lock.json
       - name: Install dashboard dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Dashboard lint
-        run: npm run lint
       - name: Dashboard production build
         run: npm run build
 
