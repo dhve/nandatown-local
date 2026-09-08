@@ -3,20 +3,20 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Docs",
   description:
-    "Install Nanda Town, exercise an exact Lab, Track, or Path workflow, and verify stage-separated local evidence.",
+    "Install Nanda Town with pip install nest-core, run your first multi-agent experiment, learn the scenario YAML format and the twelve protocol layers, write a plugin, and run agents in the cloud.",
   alternates: { canonical: "/docs" },
 };
 
 const softwareJsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "Nanda Town",
+  name: "Nanda Town (nest-core)",
   applicationCategory: "DeveloperApplication",
   operatingSystem: "macOS, Linux, Windows",
   description:
-    "Local-first lab for declared agent workflows and protocol simulations with stage-separated evidence.",
+    "Open-source multi-agent simulator: run deterministic scenarios of AI agents, write layer plugins, and validate agent protocols.",
   url: "https://nandatown.projectnanda.org/docs",
-  installUrl: "https://github.com/projnanda/nandatown#install",
+  installUrl: "https://pypi.org/project/nest-core/",
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   publisher: { "@type": "Organization", name: "Project NANDA" },
 };

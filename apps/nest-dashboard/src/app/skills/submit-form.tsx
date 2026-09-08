@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { submitSkill } from "./actions";
-import { initialSubmitState, type SubmitState } from "./form-state";
+import { initialSubmitState } from "./form-state";
 
 type SourceType = "url" | "github" | "content";
 
@@ -27,48 +27,27 @@ const CHECKLIST = [
 ];
 
 export function SubmitForm() {
+  const [state, formAction, pending] = useActionState(
+    submitSkill,
+    initialSubmitState,
+  );
   const [sourceType, setSourceType] = useState<SourceType>("url");
   const [checked, setChecked] = useState<boolean[]>(() =>
     CHECKLIST.map(() => false),
   );
   const formRef = useRef<HTMLFormElement>(null);
-  // Block repeat submit events synchronously, before the pending render can
-  // disable the button. This is a UI guard, not server-side idempotency.
-  const submittingRef = useRef(false);
-  const submitAndReset = useCallback(
-    async (previous: SubmitState, formData: FormData) => {
-      const next = await submitSkill(previous, formData);
-      if (next.ok) {
-        formRef.current?.reset();
-        setSourceType("url");
-        setChecked(CHECKLIST.map(() => false));
-      }
-      return next;
-    },
-    [],
-  );
-  const [state, formAction, pending] = useActionState(
-    submitAndReset,
-    initialSubmitState,
-  );
 
+  // Clear the fields after a successful save.
   useEffect(() => {
-    if (!pending) submittingRef.current = false;
-  }, [pending]);
+    if (state.ok) {
+      formRef.current?.reset();
+      setSourceType("url");
+      setChecked(CHECKLIST.map(() => false));
+    }
+  }, [state.ok]);
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      onSubmit={(event) => {
-        if (submittingRef.current) {
-          event.preventDefault();
-          return;
-        }
-        submittingRef.current = true;
-      }}
-      className="space-y-7"
-    >
+    <form ref={formRef} action={formAction} className="space-y-7">
       {/* Readiness checklist */}
       <div className="rounded-2xl border border-cream-400/70 bg-cream-100/70 p-5">
         <p className={labelClass}>Before you submit — the steps</p>

@@ -8,11 +8,30 @@ import {
   useState,
 } from 'react';
 import * as d3 from 'd3';
-import {
-  parseTrace,
-  type TraceEvent,
-  type TraceFormat,
-} from '@/lib/trace-adapter';
+import { MaritimeCallout } from '@/components/maritime-callout';
+
+/* ------------------------------------------------------------------ */
+/*  Real Nanda Town trace format                                      */
+/* ------------------------------------------------------------------ */
+
+type TraceKind =
+  | 'start'
+  | 'stop'
+  | 'send'
+  | 'receive'
+  | 'broadcast'
+  | 'dropped';
+
+interface TraceEvent {
+  ts: number;
+  agent: string;
+  kind: TraceKind;
+  from?: string;
+  to?: string;
+  msg?: string;
+  size?: number;
+  corr?: string;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Scenarios                                                          */
@@ -341,6 +360,43 @@ function RoleIcon({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Trace parser                                                       */
+/* ------------------------------------------------------------------ */
+
+function parseTrace(text: string): TraceEvent[] {
+  const out: TraceEvent[] = [];
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    try {
+      const obj = JSON.parse(line);
+      if (typeof obj.ts === 'number' && typeof obj.kind === 'string' && obj.agent) {
+        out.push(obj as TraceEvent);
+      }
+    } catch {
+      /* skip */
+    }
+  }
+  out.sort((a, b) => a.ts - b.ts);
+
+  // Nanda Town trace files currently emit ts:0.0 for every event. If the trace
+  // has no temporal spread, synthesize one from file order so playback
+  // has something to animate against.
+  if (out.length > 1) {
+    const minTs = out[0].ts;
+    const maxTs = out[out.length - 1].ts;
+    if (maxTs - minTs < 1e-6) {
+      const span = 10;
+      const n = out.length;
+      for (let i = 0; i < n; i++) {
+        out[i] = { ...out[i], ts: (i / Math.max(1, n - 1)) * span };
+      }
+    }
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Derived structures                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -666,13 +722,14 @@ function Player({
   const [hover, setHover] = useState<string | null>(null);
   const [focused, setFocused] = useState<string | null>(null);
   const [view, setView] = useState({ k: 1, x: 0, y: 0 });
-  const [positions, setPositions] = useState<Map<string, { x: number; y: number }>>(
-    () => computeLayout(derived.agents, W, H),
-  );
+  const [, bump] = useState(0);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const nodesRef = useRef<ForceNode[]>([]);
+  const positionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const simRef = useRef<d3.Simulation<ForceNode, ForceLink> | null>(null);
+  const viewRef = useRef(view);
+  viewRef.current = view;
 
   // Initialize force simulation each time the trace changes
   useEffect(() => {
@@ -699,6 +756,17 @@ function Player({
 
     const n = derived.agents.length;
     const collideR = n > 60 ? 11 : n > 30 ? 15 : 22;
+
+    // Pre-populate positions from the seed so the first render already shows
+    // nodes — d3 sim ticks happen asynchronously and React may not pick up
+    // ref mutations until the next state-triggered render.
+    {
+      const m = positionsRef.current;
+      m.clear();
+      for (const node of nodes) {
+        m.set(node.id, { x: node.x ?? 0, y: node.y ?? 0 });
+      }
+    }
 
     const sim = d3
       .forceSimulation<ForceNode, ForceLink>(nodes)
@@ -734,15 +802,17 @@ function Player({
       .alpha(1)
       .alphaDecay(0.022)
       .on('tick', () => {
-        const next = new Map<string, { x: number; y: number }>();
+        const m = positionsRef.current;
+        m.clear();
         for (const node of nodes) {
-          next.set(node.id, { x: node.x ?? 0, y: node.y ?? 0 });
+          m.set(node.id, { x: node.x ?? 0, y: node.y ?? 0 });
         }
-        setPositions(next);
+        bump((t) => (t + 1) % 1_000_000);
       });
 
     simRef.current = sim;
     nodesRef.current = nodes;
+    bump((t) => (t + 1) % 1_000_000);
 
     return () => {
       sim.stop();
@@ -785,8 +855,9 @@ function Player({
     const rect = svg.getBoundingClientRect();
     const sx = ((clientX - rect.left) / rect.width) * W;
     const sy = ((clientY - rect.top) / rect.height) * H;
-    return { x: (sx - view.x) / view.k, y: (sy - view.y) / view.k };
-  }, [view]);
+    const v = viewRef.current;
+    return { x: (sx - v.x) / v.k, y: (sy - v.y) / v.k };
+  }, []);
 
   // Drag a node
   const startNodeDrag = useCallback(
@@ -834,7 +905,7 @@ function Player({
   const startBgPan = useCallback((e: React.PointerEvent<SVGSVGElement>) => {
     if ((e.target as SVGElement).closest('[data-agent]')) return;
     const startClient = { x: e.clientX, y: e.clientY };
-    const startView = { x: view.x, y: view.y };
+    const startView = { x: viewRef.current.x, y: viewRef.current.y };
     const svg = svgRef.current!;
     const rect = svg.getBoundingClientRect();
     const onMove = (ev: PointerEvent) => {
@@ -848,7 +919,7 @@ function Player({
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
-  }, [view.x, view.y]);
+  }, []);
 
   // Mouse-wheel zoom around cursor
   useEffect(() => {
@@ -1002,6 +1073,7 @@ function Player({
     return m;
   }, [derived]);
 
+  const positions = positionsRef.current;
   const fmt = (t: number) => t.toFixed(2);
 
   const colorOf = (kind: 'send' | 'broadcast' | 'dropped') =>
@@ -1695,7 +1767,6 @@ export default function VisualizerPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customName, setCustomName] = useState<string | null>(null);
-  const [traceFormat, setTraceFormat] = useState<TraceFormat | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Playback state — lifted so MessageStream can subscribe too
@@ -1715,11 +1786,8 @@ export default function VisualizerPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
       const parsed = parseTrace(text);
-      if (parsed.events.length === 0) throw new Error('Trace has no visualizable message events');
-      setEvents(parsed.events);
-      setSimTime(parsed.events[0].ts);
-      setPlaying(true);
-      setTraceFormat(parsed.format);
+      if (parsed.length === 0) throw new Error('Trace is empty');
+      setEvents(parsed);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load trace');
       setEvents(null);
@@ -1740,17 +1808,8 @@ export default function VisualizerPage() {
       try {
         const text = ev.target?.result as string;
         const parsed = parseTrace(text);
-        if (parsed.events.length === 0) {
-          throw new Error(
-            parsed.format === 'town-event'
-              ? 'No lifecycle or message-delivery events in this TownEvent file'
-              : 'No valid events in file',
-          );
-        }
-        setEvents(parsed.events);
-        setSimTime(parsed.events[0].ts);
-        setPlaying(true);
-        setTraceFormat(parsed.format);
+        if (parsed.length === 0) throw new Error('No valid events in file');
+        setEvents(parsed);
         setCustomName(file.name);
         setScenarioId('custom');
       } catch (e) {
@@ -1766,6 +1825,14 @@ export default function VisualizerPage() {
     () => (events ? derive(events) : null),
     [events],
   );
+
+  // Reset playback when a new trace loads
+  useEffect(() => {
+    if (derived) {
+      setSimTime(derived.tMin);
+      setPlaying(true);
+    }
+  }, [derived]);
 
   return (
     <div className="bg-cream-100">
@@ -1785,10 +1852,10 @@ export default function VisualizerPage() {
               </h1>
             </div>
             <p className="animate-fade-in stagger-2 text-[1.1rem] leading-[1.6] text-ink-500 max-w-md">
-              Every pulse is a recorded message from a Nanda Town trace. Drag
+              Every pulse is a real message from a real Nanda Town trace. Drag
               agents around, scrub the timeline, or drop in a{' '}
-              <span className="font-mono text-rust">events.jsonl</span> from your own{' '}
-              <span className="font-mono text-rust">nandatown run</span>.
+              <span className="font-mono text-rust">.jsonl</span> from your own{' '}
+              <span className="font-mono text-rust">nest run</span>.
             </p>
           </div>
         </div>
@@ -1798,7 +1865,7 @@ export default function VisualizerPage() {
         <div className="animate-fade-in stagger-1">
           <div className="flex items-center justify-between gap-4 mb-4">
             <h2 className="font-mono text-[10px] uppercase tracking-[0.22em] text-ink-400">
-              Bundled legacy showcase traces
+              Scenarios
             </h2>
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -1852,7 +1919,7 @@ export default function VisualizerPage() {
                   Custom
                 </div>
                 <div className="mt-1 text-[0.74rem] leading-snug text-ink-500 truncate">
-                  {customName} · {traceFormat === 'town-event' ? 'current TownEvent' : traceFormat}
+                  {customName}
                 </div>
               </div>
             )}
@@ -1911,7 +1978,7 @@ export default function VisualizerPage() {
 
             <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
               <Player
-                key={`${scenarioId}:${customName ?? ''}`}
+                key={scenarioId}
                 derived={derived}
                 simTime={simTime}
                 setSimTime={setSimTime}
@@ -1926,6 +1993,10 @@ export default function VisualizerPage() {
               </div>
             </div>
 
+            <MaritimeCallout
+              className="mt-6"
+              title="Want to run this with agents in the cloud?"
+            />
           </div>
         )}
       </div>

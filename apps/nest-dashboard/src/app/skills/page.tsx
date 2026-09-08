@@ -284,12 +284,7 @@ function SkillCard({
         <span>{formatDate(skill.created_at)}</span>
 
         {showReach &&
-          (skill.reachable === null ? (
-            <span className="inline-flex items-center gap-1.5 text-ink-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-ink-300" />
-              link not checked
-            </span>
-          ) : skill.reachable ? (
+          (skill.reachable ? (
             <span className="inline-flex items-center gap-1.5 text-sage">
               <span className="h-1.5 w-1.5 rounded-full bg-sage" />
               link responded

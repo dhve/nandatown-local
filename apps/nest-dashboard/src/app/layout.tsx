@@ -1,8 +1,27 @@
 import type { Metadata } from "next";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { HackathonBanner } from "@/components/hackathon-banner";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument",
+  subsets: ["latin"],
+  weight: ["400"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
 
 const SITE_URL = "https://nandatown.projectnanda.org";
 
@@ -13,14 +32,15 @@ export const metadata: Metadata = {
     template: "%s — Nanda Town",
   },
   description:
-    "Nanda Town is a local-first lab for declared agent workflows and protocol simulations with stage-separated evidence. By Project NANDA.",
+    "Nanda Town is an open-source sandbox where AI agents meet, talk, and work things out — run multi-agent simulations, write layer plugins, and test agent protocols. By Project NANDA.",
   keywords: [
     "AI agents",
-    "agent integration testing",
-    "agent evidence",
+    "multi-agent simulation",
+    "agent protocols",
     "Project NANDA",
     "Nanda Town",
-    "local-first agent lab",
+    "agent sandbox",
+    "nest-core",
     "agentic commerce",
     "AI agent testing",
   ],
@@ -33,7 +53,7 @@ export const metadata: Metadata = {
     siteName: "Nanda Town",
     title: "Nanda Town — by Project NANDA",
     description:
-      "A local-first lab for declared agent workflows and protocol simulations with stage-separated evidence.",
+      "An open-source sandbox where AI agents meet, talk, and work things out. Run multi-agent simulations, write layer plugins, and test agent protocols.",
     images: [
       {
         url: "/brand/nanda-logo-color.png",
@@ -48,7 +68,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Nanda Town — by Project NANDA",
     description:
-      "A local-first integration lab for exact agent paths and reproducible evidence.",
+      "An open-source sandbox where AI agents meet, talk, and work things out.",
     images: ["/brand/nanda-logo-color.png"],
   },
   robots: {
@@ -86,7 +106,7 @@ const webSiteJsonLd = {
   name: "Nanda Town",
   url: SITE_URL,
   description:
-    "A local-first lab for declared agent workflows and protocol simulations with stage-separated evidence.",
+    "An open-source sandbox where AI agents meet, talk, and work things out. Run multi-agent simulations, write layer plugins, and test agent protocols.",
   publisher: { "@type": "Organization", name: "Project NANDA" },
 };
 
@@ -96,7 +116,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
+    >
       <body className="min-h-full bg-cream-100 text-ink-900">
         <script
           type="application/ld+json"

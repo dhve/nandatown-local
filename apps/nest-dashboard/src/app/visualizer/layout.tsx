@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Visualizer",
   description:
-    "Load current Nanda Town events.jsonl evidence or a labeled legacy showcase trace and inspect message flow in the browser.",
+    "Load a Nanda Town simulation trace and watch AI agents interact — message flows, agent timelines, and playback controls in the browser.",
   alternates: { canonical: "/visualizer" },
 };
 
